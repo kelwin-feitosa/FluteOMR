@@ -78,7 +78,8 @@ for staff in result.staffs:
 ```
 
 `detect_staffs(image)` aceita uma imagem Pillow sem mutá-la. `DetectionResult`
-contém dimensões, `staffs`, `candidates`, limiar Otsu e diagnósticos; `to_dict()`
+contém dimensões, `staffs`, `candidates`, `threshold` (limiar Otsu),
+`analysis_threshold` (limiar efetivo usado) e diagnósticos; `to_dict()`
 inclui `staff_count`. Cada pauta fornece cinco linhas ordenadas de cima para baixo,
 espaçamento e `region`. Cada linha tem `x_start`, `x_end`, `y` (centro) e `thickness`.
 Origem: canto superior esquerdo; x cresce à direita e y para baixo. Coordenadas
@@ -89,15 +90,48 @@ Estados: `detected` aceita geometria; `no_staff` não encontra grupo válido;
 `ambiguous` indica grupos concorrentes. Grupos ambíguos são omitidos de `staffs`,
 mas suas linhas permanecem em `candidates`. Pautas independentes podem coexistir
 com ambiguidade. Nenhum estado ou pontuação representa probabilidade de acerto.
-Depuração: candidatos laranja, linhas aceitas vermelhas, regiões azuis.
+`candidates` guarda os extremos brutos dos trechos mais longos; `staffs[*].lines`
+guarda os extremos refinados, e `region` envolve esses extremos. A correção junta
+evidências em uma faixa vertical estreita e trechos horizontais corroborados pelas
+cinco linhas da própria pauta. Não usa os comprimentos de outras pautas da página.
+Depuração: candidatos brutos laranja, linhas aceitas vermelhas, regiões azuis.
+O diagnóstico `contrast_threshold_adjusted` indica um limiar mais claro que Otsu;
+`contrast_retry` indica uma segunda tentativa após não encontrar grupos.
 
 ## Algoritmo, avaliação e limites
 
-Escala de cinza e Otsu produzem uma máscara de pixels escuros. A projeção horizontal
+Escala de cinza e Otsu iniciam a máscara de pixels escuros. Para recuperar linhas
+cinzentas, o limiar efetivo avança 30% da distância entre Otsu e o tom mais
+frequente; se nenhum grupo aparecer, uma segunda tentativa usa um limiar próximo
+ao fundo. O valor Otsu permanece em `threshold`. A projeção horizontal
 seleciona faixas, cujos centros são ponderados pela quantidade de pixels escuros.
-A validação usa comprimento, espessura, sobreposição horizontal e regularidade
-dos quatro espaçamentos. Os parâmetros relativos estão registrados na decisão
-`docs/decisions/0002-staff-geometry.md`.
+A validação usa comprimento, espessura, sobreposição horizontal e regularidade dos
+quatro espaçamentos. Os parâmetros revisados estão em
+`docs/decisions/0003-real-staff-robustness.md`.
+Os limites horizontais refinados são usados antes de verificar a sobreposição:
+isso permite agrupar linhas interrompidas em posições diferentes. Fragmentos
+curtos e isolados não estendem uma pauta. As coordenadas x mantêm a origem e a
+convenção de extremos inclusivos existentes.
+
+### Avaliação local de imagens reais
+
+O manifesto `tests/data/real_staff_counts.json` guarda apenas nomes e contagens,
+sem imagens. Com os quatro arquivos presentes no diretório ignorado pelo Git:
+
+```bash
+python -m tools.evaluate_real_staffs --images-dir outputs/teste-real \
+  --validate --debug-dir outputs/avaliacao-real-nova
+```
+
+O programa mostra contagem esperada, detectada e diferença por imagem e no total.
+Em modo `--validate`, retorna 1 se houver diferença; arquivos ausentes são
+informados e retornam 2 mesmo sem validação. Escolha uma nova pasta de depuração
+para não sobrescrever saídas antigas. O CI normal usa apenas dados sintéticos.
+O manifesto reflete a inspeção visual: 10 pautas em *Pirates*, 9 em *Quando*,
+12 em *Mov. III* e 3 em *Twinkle*. As contagens inicialmente relatadas de 10
+e 13 nas duas imagens centrais foram corrigidas após conferir os sistemas.
+Igualdade de contagem não mede recall ou falsos positivos por posição; isso requer
+anotações de referência das linhas em cada imagem.
 
 Garantido pelos testes sintéticos: dez casos positivos (deslocamento, espessuras
 1–4 px, espaçamentos 6–24 px, duas pautas, símbolos simples, interrupções curtas e

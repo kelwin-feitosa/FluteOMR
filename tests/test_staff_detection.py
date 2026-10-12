@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 import pytest
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 from fluteomr import detect_staffs, detect_staffs_file, image_io
 from fluteomr.debug import render_debug_image
@@ -201,3 +201,62 @@ def test_exif_rotation_uses_normalized_coordinates(tmp_path):
     assert result.staff_count == 1
     for line, y in zip(result.staffs[0].lines, centers[0], strict=True):
         assert abs(line.y - y) <= 2
+
+
+def test_unequal_horizontal_extents_and_irregular_pixel_spacing():
+    image = Image.new("L", (400, 150), 255)
+    draw = ImageDraw.Draw(image)
+    positions = [40, 47, 56, 64, 71]
+    for index, y in enumerate(positions):
+        start, end = (20, 300) if index % 2 == 0 else (100, 380)
+        draw.line((start, y, end, y), fill=0)
+        draw.rectangle((180, y, 183, y), fill=255)
+        draw.line((220, y - 4, 220, y + 3), fill=0)
+    result = detect_staffs(image)
+    assert result.status == "detected"
+    assert result.staff_count == 1
+    assert [round(line.y) for line in result.staffs[0].lines] == positions
+    assert result.staffs[0].region.left <= 20
+    assert result.staffs[0].region.right >= 380
+
+
+def test_faint_blurred_jpeg_lines_with_darker_symbols(tmp_path):
+    image = Image.new("L", (640, 160), 250)
+    draw = ImageDraw.Draw(image)
+    centers = [40, 52, 64, 76, 88]
+    for y in centers:
+        draw.line((35, y, 605, y), fill=205)
+    for y in [30, 42, 54, 66, 78, 90]:
+        draw.ellipse((8, y, 28, y + 7), fill=0)
+    path = tmp_path / "faint.jpg"
+    image.filter(ImageFilter.GaussianBlur(0.35)).save(path, quality=45)
+    result = detect_staffs_file(path)
+    assert result.staff_count == 1
+    assert "contrast_retry" in result.diagnostics
+    assert result.threshold < result.analysis_threshold
+    assert all(
+        abs(line.y - center) <= 2
+        for line, center in zip(result.staffs[0].lines, centers, strict=True)
+    )
+
+
+def test_multiple_tightly_spaced_systems_with_symbols():
+    image, expected = make_staff_image(
+        size=(480, 230), tops=(15, 85, 155), spacing=7, symbols=True, gaps=True
+    )
+    result = detect_staffs(image)
+    assert result.staff_count == 3
+    for staff, centers in zip(result.staffs, expected, strict=True):
+        assert len(staff.lines) == 5
+        assert all(
+            abs(line.y - center) <= 2
+            for line, center in zip(staff.lines, centers, strict=True)
+        )
+
+
+def test_unrelated_horizontal_rules_remain_rejected():
+    image = Image.new("L", (400, 160), 255)
+    draw = ImageDraw.Draw(image)
+    for y, length in [(15, 350), (28, 300), (43, 330), (66, 340), (89, 310)]:
+        draw.line((10, y, length, y), fill=0)
+    assert detect_staffs(image).status == "no_staff"

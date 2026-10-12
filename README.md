@@ -8,8 +8,9 @@ exportações MSCZ e PDF musical dependerão de integração apropriada.
 
 O núcleo detecta pautas horizontais de cinco linhas em PNG/JPEG, agrupa sistemas
 quando há evidência geométrica e oferece um detector experimental de clave de sol.
-Há saída JSON e imagem de depuração. Não interpreta notas, ritmos ou outros
-símbolos. Não há conversão PDF, exportação, interface gráfica ou modelos de ML.
+Uma CLI experimental infere semínimas/mínimas em um ou mais compassos controlados e exporta
+MusicXML. Há saída JSON, depuração e interfaces locais de revisão. Ainda não há
+conversão PDF, reconhecimento musical geral nem modelos de ML.
 O algoritmo é próprio; OMRs existentes não substituem o núcleo.
 
 O alvo inicial são partituras limpas, digitalmente geradas, com uma pauta em clave
@@ -236,6 +237,193 @@ estimada. Tolerâncias e decisões estão em
 `docs/decisions/0007-annotation-evaluation.md`. Resultados nas quatro imagens
 locais são diagnósticos de desenvolvimento; uma avaliação de generalização exige
 um conjunto `test` independente, anotado antes de ajustar detectores.
+
+### Revisão visual de rascunhos (Fase 5.3)
+
+O anotador local usa Tkinter + Pillow e mantém o formato 1 de
+`docs/annotation-format.md`. Tkinter é opcional para os testes e o núcleo. No
+Pop!_OS 24.04, o pacote do sistema é `python3-tk`; se `import tkinter` falhar,
+instale-o pelo gerenciador de pacotes e recrie o `.venv` se necessário. A CLI
+mostra um erro claro enquanto o módulo não estiver disponível. A interface não
+executa os detectores nem transforma sugestões em referência validada.
+
+Exemplo com o **rascunho de Fairy Tail** da Fase 5.2, se esses arquivos locais
+estiverem presentes:
+
+```bash
+python -m tools.annotate \
+  --annotation 'outputs/novas-partituras/suggestions/Fairy_Tail_Main_Theme_(flute_version)__c325b7598d_p001/Fairy_Tail_Main_Theme_(flute_version)__c325b7598d_p001.png.reference-draft.json' \
+  --images-dir outputs/novas-partituras/png
+```
+
+Também é possível iniciar sem argumentos e usar **Abrir** para escolher o JSON e
+a pasta da imagem. O modo **Revisar claves** mostra uma lista de pautas e foca
+automaticamente a região inicial da clave selecionada. Use **Próxima pendente**
+ou **Anterior** para percorrê-las. Uma sugestão aceita aparece tracejada;
+**Confirmar sugestão** copia sua região apenas após o clique. Para uma pauta
+inconclusiva como `s1`, escolha **Corrigir região / desenhar caixa**, arraste a
+caixa sobre a clave, selecione o tipo visto e clique em **Confirmar correção
+desenhada**. A caixa laranja tracejada é uma prévia: `Esc` a cancela sem editar
+o rascunho. No mesmo modo, arraste uma caixa existente para movê-la ou sua alça
+inferior direita para redimensioná-la, e confirme a correção. **Não consigo
+identificar** conserva o estado desconhecido; **Não é clave de sol / outra
+clave** distingue outra clave presente de ausência confirmada de qualquer clave.
+
+Roda do mouse aproxima em torno do cursor; **Página**, **Largura** e
+**Seleção** ajustam a vista. A ferramenta **Navegar** arrasta a página; as
+barras fazem rolagem horizontal e vertical. As caixas e os estados só mudam
+após ações explícitas de revisão. Use as caixas de seleção para ocultar pautas,
+sistemas, claves ou sugestões. **Mostrar opções avançadas** abre edição
+numérica, pauta/sistema, cobertura e checagem estrutural. A região de um sistema
+deriva das pautas; edite seus IDs de membros para corrigir o agrupamento. O
+painel lateral e as opções avançadas têm rolagem vertical. O
+zoom nunca altera as coordenadas armazenadas.
+
+Em Fairy Tail, a clave da pauta `s1` está `unknown` no rascunho; as caixas
+(295,1362,374,1582) e (436,1404,518,1553) são hipóteses, não verdade. Revise
+o PNG original antes de marcar `present` ou usar uma caixa. Para cada pauta,
+confira também região, cinco linhas e estado `review_state`; para cada sistema,
+confira `staff_ids` e seu estado. `unknown` significa não verificado;
+`absent` significa **nenhuma clave visível**, não apenas ausência de sol. Se
+houver outra clave presente, escolha `bass`, `alto` ou `other`. Use `complete`
+somente após uma revisão exaustiva, e mantenha exemplos usados para ajustes em
+`development`. O editor não escolhe automaticamente a partição nem uma clave.
+
+**Salvar rascunho** grava de modo atômico; **Reverter** descarta alterações desde
+o último salvamento, e trocar de arquivo ou fechar com mudanças pendentes pede
+decisão. Referências `validated` abrem somente para leitura. **Checar** valida
+formato, hash e dimensão, mas não comprova correção musical. A confirmação
+definitiva continua separada na CLI existente, depois da revisão humana:
+
+```bash
+python -m tools.evaluate_annotations check \
+  --annotation RASCUNHO.reference-draft.json --images-dir PASTA_DAS_IMAGENS
+python -m tools.evaluate_annotations confirm \
+  --annotation RASCUNHO.reference-draft.json --images-dir PASTA_DAS_IMAGENS \
+  --output NOVA_REFERENCIA.reference.json --reviewer SEU_NOME --confirm-reviewed
+```
+
+`confirm` não sobrescreve um destino existente. O anotador não implementa
+histórico complexo, escolha automática entre componentes inconclusivos, nem
+anotação de notas ou ritmos. A abertura real da janela exige Tkinter e display;
+as regras de edição têm testes headless.
+
+### Editor OMR web local (Fase 5.4)
+
+Inicie o servidor sem dependências web adicionais, a partir da raiz do projeto:
+
+```bash
+.venv/bin/python -m tools.web_editor
+```
+
+Abra **http://127.0.0.1:8765/** no navegador local. A tela inicial lista as
+imagens já processadas em `outputs/novas-partituras/`, com contagens de pautas,
+pendências de clave e correções salvas. Escolha `Fairy_Tail_Main_Theme_(flute_version)`
+e clique em **Abrir no editor**. A página mostra sete pautas, seis claves de sol
+aceitas pelo detector e `s1` pendente. **← Início** retorna ao catálogo; se
+houver alterações não salvas, a interface pede confirmação antes de descartá-las.
+Contagem zero de pendências não significa que a partitura foi validada.
+Clique em uma pauta ou caixa para aproximá-la. O painel direito mostra recorte,
+estado e diagnóstico. As caixas verdes são predições; a área âmbar tracejada de
+`s1` é apenas uma zona aproximada para revisão, **não** uma caixa detectada.
+
+Para corrigir `s1`, clique em **Desenhar região**, arraste sobre a clave que você
+identificou no PNG, escolha seu tipo e use **Aplicar correção**. Para corrigir
+uma predição aceita, selecione-a, escolha outro tipo ou desenhe outra caixa e
+aplique. **Confirmar ausência de qualquer clave** só deve ser usado quando não
+houver nenhuma clave na pauta; ausência de sol não basta. Use **Salvar
+correções** para persistir e reabra a página para conferir. `Esc` cancela o
+desenho. **Largura**, **Página**, `+`/`−`, `Ctrl`+roda do mouse, filtros e botões
+de recolher os painéis ajudam na navegação. Encerre o servidor com `Ctrl+C`.
+As caixas são apenas contornos, inclusive ao passar o mouse; no modo de desenho
+elas não interceptam o arraste sobre a partitura.
+
+O servidor lê sugestões e PNGs, mas grava somente arquivos versionados de
+correção operacional em `outputs/web-editor/corrections/`, ignorados pelo Git.
+Eles registram decisões explícitas e hashes das fontes; predições não corrigidas
+continuam automáticas. Isso **não** produz ground truth nem valida referências
+da Fase 5.1. A API permite apenas arquivos do catálogo local e exige token e
+origem local para escrita. Diretórios alternativos podem ser configurados com
+`--images-dir`, `--suggestions-dir`, `--corrections-dir` e `--port` ao iniciar.
+Detalhes e limites estão em `docs/decisions/0009-local-web-review.md`. Não há
+importação de PDF, reconhecimento de notas ou modo de edição musical nesta fase.
+
+### Transcrição musical experimental (Sprint 1A)
+
+O primeiro caminho óptico, separado da CLI legada e dos editores, lê **uma pauta
+horizontal e um compasso** em PNG limpo. Gere exercícios originais e suas
+referências somente para comparação posterior:
+
+```bash
+.venv/bin/python -m tools.music_examples --output-dir outputs/sprint-1a/corpus
+.venv/bin/python -m tools.transcribe \
+  outputs/sprint-1a/corpus/dev_lines_spaces.png \
+  --clef treble --time 4/4 --measure-left 110 --measure-right 410 \
+  --output outputs/sprint-1a/minha-transcricao.musicxml
+.venv/bin/python -m tools.evaluate_music_examples \
+  --corpus-dir outputs/sprint-1a/corpus
+```
+
+O comando imprime o modelo e problemas em JSON; se uma altura/duração for
+inconclusiva ou a soma não fechar quatro tempos, termina com erro e **não** grava
+MusicXML. Escolha um caminho novo para cada saída: a CLI não sobrescreve arquivos.
+`--clef treble`, `--time 4/4` e os limites horizontais são **configuração do
+usuário**, não reconhecimento visual. A sequência, as alturas e as figuras
+semínima/mínima vêm dos pixels. O detector remove linhas da pauta preservando
+tinta com continuidade vertical, procura cabeças preenchidas/vazadas em posições
+diatônicas, exige haste e ordena as notas por `x`. O modelo guarda região de
+origem e a proveniência dos dados; o XML é serializado com a biblioteca padrão.
+Sua estrutura `score-partwise` segue o [exemplo mínimo MusicXML 4.0 do W3C](https://www.w3.org/2021/06/musicxml40/tutorial/hello-world/).
+O avaliador abre cada referência **depois** da inferência e pareia cabeças por
+posição horizontal em até 0,75 do espaçamento anotado; os exercícios `test` têm
+conteúdo reservado, mas usam a mesma família de desenho programático.
+
+O modo original de um compasso não detecta barras. O modo opt-in da Sprint 1B
+detecta barras internas em pautas horizontais limpas. Fórmula, clave, acidentes,
+pausas, colcheias, ligaduras e vozes seguem sem reconhecimento visual. Uma nota
+omitida pode escapar da checagem se as durações restantes ainda somarem 4/4.
+Resultados sintéticos não medem
+precisão em partituras reais; fontes, gravações e layouts independentes precisam
+de referência humana. MuseScore não estava disponível na implementação, então
+o XML foi verificado por parsing estrutural, sem teste de abertura no aplicativo.
+
+### Dois compassos e diagnóstico (Sprint 1B)
+
+Com uma **única pauta** e os limites externos informados, `--auto-bars` procura
+traços verticais contínuos entre a primeira e a quinta linha e rejeita colunas
+próximas de cabeças como possíveis hastes. Os limites externos continuam sendo
+configuração; barras internas, cabeças, alturas e semínimas/mínimas vêm da imagem.
+O JSON acrescenta `symbol_diagnostics` com barras aceitas/rejeitadas e vínculos
+de haste. Cada nota tem `candidate_id` e `source_page`; cada compasso tem região,
+IDs das barras e proveniência de cada limite. A opção `--debug` grava pauta em
+azul, cabeças em verde/laranja e barras aceitas/rejeitadas em roxo/vermelho.
+
+```bash
+.venv/bin/python -m tools.transcribe imagem-de-uma-pauta.png \
+  --clef treble --time 4/4 --measure-left 100 --measure-right 700 \
+  --auto-bars --debug outputs/sprint-1b/diagnostico.png \
+  --output outputs/sprint-1b/transcricao.musicxml
+```
+
+Para reproduzir a inspeção externa local, se a imagem de Twinkle da Fase 2
+estiver disponível em `outputs/teste-real/`, isole e amplie os dois primeiros
+compassos sem tocar no original:
+
+```bash
+mkdir -p outputs/sprint-1b
+.venv/bin/python -c "from PIL import Image; im=Image.open('outputs/teste-real/Twinkle_Twinkle_Sheet_Music.png'); im.crop((75,57,522,145)).resize((894,176)).save('outputs/sprint-1b/twinkle-2x.png')"
+.venv/bin/python -m tools.transcribe outputs/sprint-1b/twinkle-2x.png \
+  --clef treble --time 4/4 --measure-left 125 --measure-right 880 \
+  --auto-bars --debug outputs/sprint-1b/twinkle-debug.png \
+  --output outputs/sprint-1b/twinkle.musicxml
+```
+
+Essa inspeção visual produziu `C4 C4 G4 G4 | A4 A4 G4` (a última é mínima),
+mas **não** é uma métrica de precisão: a partitura externa não possui referência
+musical humana validada. As medidas reais permanecem em `outputs/`, ignorado pelo
+Git. Barras duplas/finais, pautas pequenas sem ampliação e símbolos complexos
+seguem experimentais. A soma rítmica correta não prova ausência de notas perdidas.
+Detalhes da decisão estão em `docs/decisions/0011-symbol-relations-and-barlines.md`.
 
 Garantido pelos testes sintéticos: dez casos positivos (deslocamento, espessuras
 1–4 px, espaçamentos 6–24 px, duas pautas, símbolos simples, interrupções curtas e

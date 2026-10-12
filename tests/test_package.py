@@ -18,7 +18,8 @@ def test_installed_distribution_has_expected_metadata():
     assert distribution["Requires-Python"] == ">=3.12"
 
 
-def test_core_has_no_runtime_dependencies():
+def test_core_has_only_image_runtime_dependency():
     requirements = metadata.requires("fluteomr") or []
 
-    assert all('extra == "dev"' in requirement for requirement in requirements)
+    runtime = [item for item in requirements if 'extra == "dev"' not in item]
+    assert runtime == ["Pillow==12.3.0"]

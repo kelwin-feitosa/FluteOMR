@@ -6,9 +6,10 @@ exportações MSCZ e PDF musical dependerão de integração apropriada.
 
 ## Estado atual e limites
 
-Esta etapa oferece apenas a fundação Python, instalação, testes e CI. Ainda não há
-leitura de partituras, detecção de pautas/notas, exportação, interface ou modelos de
-ML. O motor será próprio; OMRs existentes não substituirão o núcleo.
+O núcleo detecta a geometria de pautas horizontais de cinco linhas em PNG/JPEG,
+com saída JSON e imagem de depuração. Não interpreta notas, claves ou outros
+símbolos. Não há conversão PDF, exportação, interface gráfica ou modelos de ML.
+O algoritmo é próprio; OMRs existentes não substituem o núcleo.
 
 O alvo inicial são partituras limpas, digitalmente geradas, com uma pauta em clave
 de sol. Notas incomuns para flauta não devem ser descartadas automaticamente.
@@ -28,13 +29,14 @@ python -m pip install --no-build-isolation --no-deps -e .
 ```
 
 O lock fixa ferramentas, backend e dependências transitivas. A instalação requer
-acesso ao PyPI; nenhum serviço externo participa do processamento. O núcleo não
-tem dependências de execução. Para atualizar ferramentas, altere os pins no
+acesso ao PyPI; nenhum serviço externo participa do processamento. Pillow 12.3.0
+é a única dependência de execução, para leitura e manipulação de imagens, sem
+NumPy, OpenCV ou GPU. Para atualizar ferramentas, altere os pins no
 `pyproject.toml`, regenere o lock em ambiente limpo e execute as verificações.
 
 ## Execução e qualidade
 
-Não há aplicativo ou CLI de reconhecimento nesta etapa. Valide a instalação:
+Valide a instalação e a geometria com os mesmos comandos executados pelo CI:
 
 ```bash
 python -c "import fluteomr; print(fluteomr.__file__)"
@@ -45,14 +47,80 @@ python -m pip check
 ```
 
 Para aplicar formatação: `python -m ruff format .`. Os testes `tests/test_*.py`
-verificam importação e metadados da distribuição instalada, sem alterar `sys.path`.
-Ainda não existe meta de cobertura ou métrica de precisão musical.
+verificam instalação e detecção contra posições sintéticas conhecidas. Ainda não
+existe meta de cobertura ou métrica de reconhecimento de símbolos musicais.
+
+## Demonstração local e API
+
+Com o ambiente ativado, execute da raiz:
+
+```bash
+python -m tools.staff_examples --output outputs/staff-demo
+python -m fluteomr outputs/staff-demo/symbols.png \
+  --debug outputs/staff-demo/cli-debug.png > outputs/staff-demo/result.json
+python -m fluteomr caminho/partitura.jpg
+```
+
+O gerador produz imagens próprias, anotações e `evaluation.json` com ground truth,
+contagens, erros e tempos medidos. Escolha um diretório novo a cada avaliação;
+saídas em `outputs/` são ignoradas. A CLI recebe um PNG/JPEG posicional e `--debug`
+opcional; JSON vai para stdout, erros para stderr (código 2). Ausência/ambiguidade
+são resultados normais (código 0). A saída de depuração não sobrescreve arquivos
+existentes. Sua pasta de destino deve existir.
+
+```python
+from fluteomr import detect_staffs_file
+
+result = detect_staffs_file("partitura.png")
+print(result.status, result.staff_count)
+for staff in result.staffs:
+    print(staff.spacing, [line.y for line in staff.lines])
+```
+
+`detect_staffs(image)` aceita uma imagem Pillow sem mutá-la. `DetectionResult`
+contém dimensões, `staffs`, `candidates`, limiar Otsu e diagnósticos; `to_dict()`
+inclui `staff_count`. Cada pauta fornece cinco linhas ordenadas de cima para baixo,
+espaçamento e `region`. Cada linha tem `x_start`, `x_end`, `y` (centro) e `thickness`.
+Origem: canto superior esquerdo; x cresce à direita e y para baixo. Coordenadas
+referem-se à imagem após orientação EXIF, com extremos de regiões inclusivos.
+Transparência é composta sobre branco. O limite é 20 milhões de pixels.
+
+Estados: `detected` aceita geometria; `no_staff` não encontra grupo válido;
+`ambiguous` indica grupos concorrentes. Grupos ambíguos são omitidos de `staffs`,
+mas suas linhas permanecem em `candidates`. Pautas independentes podem coexistir
+com ambiguidade. Nenhum estado ou pontuação representa probabilidade de acerto.
+Depuração: candidatos laranja, linhas aceitas vermelhas, regiões azuis.
+
+## Algoritmo, avaliação e limites
+
+Escala de cinza e Otsu produzem uma máscara de pixels escuros. A projeção horizontal
+seleciona faixas, cujos centros são ponderados pela quantidade de pixels escuros.
+A validação usa comprimento, espessura, sobreposição horizontal e regularidade
+dos quatro espaçamentos. Os parâmetros relativos estão registrados na decisão
+`docs/decisions/0002-staff-geometry.md`.
+
+Garantido pelos testes sintéticos: dez casos positivos (deslocamento, espessuras
+1–4 px, espaçamentos 6–24 px, duas pautas, símbolos simples, interrupções curtas e
+ruído de 0,5%) retornam a contagem correta, cinco linhas ordenadas e erro máximo
+de centro <=2 px. Branco, quatro linhas e espaçamento inconsistente são rejeitados;
+seis linhas igualmente espaçadas são ambíguas. PNG/JPEG, transparência, cinza,
+extensões horizontais e CLI têm testes adicionais.
+
+Limitações registradas em `evaluation.json`: cinco linhas não musicais com a mesma
+geometria produzem falso positivo; rotação de 2° perde a pauta. Esses dois critérios
+futuros têm testes `xfail(strict=True)`; use `python -m pytest -q -rx` para listar
+suas razões. Não contam como acertos da avaliação principal. Inclinação, grandes
+lacunas, pautas ocupando menos de 25% da largura, contraste não uniforme, fotografias,
+manuscritos e pautas lado a lado não têm suporte garantido. Símbolos ou regras muito
+longas podem dominar a projeção. Os testes sintéticos não demonstram precisão em
+partituras reais. A etapa seguinte deverá validar exemplos reais autorizados.
 
 ## Estrutura e contribuição
 
 - `src/fluteomr/`: núcleo Python independente das futuras interfaces.
 - `tests/`: testes reproduzíveis.
 - `assets/`: recursos autorizados; leia suas regras antes de adicionar material.
+- `tools/staff_examples.py`: geração sintética e avaliação reproduzível.
 - `docs/decisions/`: decisões, alternativas e consequências arquiteturais.
 - `.github/workflows/ci.yml`: testes, lint, formatação e dependências em Python 3.12.
 - `AGENTS.md`: orientações obrigatórias para contribuições.
@@ -65,11 +133,10 @@ Não inclua credenciais, materiais sem autorização ou serviços pagos.
 
 O workflow usa GitHub Actions sem deploy ou publicação. Em repositório privado,
 consome a franquia de minutos do plano; mantenha cobrança adicional desativada.
-Sua execução remota só poderá ser confirmada após o push aprovado.
+Novas alterações só serão verificadas remotamente após o push aprovado.
 
 ## Próxima etapa técnica
 
-Definir uma tarefa pequena para entrada e processamento de uma imagem sintética
-autorizada, com resultado esperado e teste reproduzível. Em seguida, avaliar
-entrada PDF e rasterização local, consumo de memória e visualizações de depuração,
-antes da detecção das cinco linhas da pauta e das cabeças de notas.
+Validar a geometria em um conjunto pequeno de imagens reais autorizadas, com
+anotações manuais e casos de falha; depois avaliar correção de pequenas inclinações.
+Conversão PDF e localização de cabeças de notas ficam para tarefas separadas.

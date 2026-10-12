@@ -1,4 +1,5 @@
-"""Núcleo independente de interfaces do FluteOMR.
+"""Geometria de pautas; não interpreta símbolos musicais."""
 
-O reconhecimento musical ainda não está implementado.
-"""
+from fluteomr.staff_detection import DetectionResult, detect_staffs, detect_staffs_file
+
+__all__ = ["DetectionResult", "detect_staffs", "detect_staffs_file"]

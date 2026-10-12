@@ -1,0 +1,50 @@
+"""Serialização mínima e estrita de um compasso melódico em MusicXML."""
+
+from xml.etree import ElementTree as ET
+
+from fluteomr.music import MusicScore
+
+
+def to_musicxml(score: MusicScore) -> bytes:
+    """Recusa saída final quando faltam eventos essenciais ou a duração não fecha."""
+    issues = score.issues()
+    if issues:
+        raise ValueError(f"transcrição incompleta: {', '.join(issues)}")
+    if not score.parts:
+        raise ValueError("partitura sem partes")
+    root = ET.Element("score-partwise", version="4.0")
+    part_list = ET.SubElement(root, "part-list")
+    for part in score.parts:
+        listed = ET.SubElement(part_list, "score-part", id=part.id)
+        ET.SubElement(listed, "part-name").text = part.name
+    for part in score.parts:
+        part_element = ET.SubElement(root, "part", id=part.id)
+        for measure in part.measures:
+            element = ET.SubElement(part_element, "measure", number=str(measure.number))
+            attributes = ET.SubElement(element, "attributes")
+            ET.SubElement(attributes, "divisions").text = "1"
+            time = ET.SubElement(attributes, "time")
+            ET.SubElement(time, "beats").text = str(measure.time_signature.beats)
+            ET.SubElement(time, "beat-type").text = str(
+                measure.time_signature.beat_type
+            )
+            clef = ET.SubElement(attributes, "clef")
+            ET.SubElement(clef, "sign").text = "G"
+            ET.SubElement(clef, "line").text = "2"
+            for note in measure.notes:
+                note_element = ET.SubElement(element, "note")
+                pitch = ET.SubElement(note_element, "pitch")
+                ET.SubElement(pitch, "step").text = note.pitch.step
+                ET.SubElement(pitch, "octave").text = str(note.pitch.octave)
+                ET.SubElement(note_element, "duration").text = str(
+                    note.duration.quarters
+                )
+                ET.SubElement(note_element, "type").text = note.duration.kind
+    xml = ET.tostring(root, encoding="utf-8", xml_declaration=True)
+    return xml.replace(
+        b"?>",
+        b"?>\n<!DOCTYPE score-partwise  PUBLIC "
+        b'"-//Recordare//DTD MusicXML 4.0 Partwise//EN" '
+        b'"http://www.musicxml.org/dtds/partwise.dtd">',
+        1,
+    )

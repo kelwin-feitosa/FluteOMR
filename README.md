@@ -48,8 +48,8 @@ python -m pip check
 ```
 
 Para aplicar formatação: `python -m ruff format .`. Os testes `tests/test_*.py`
-verificam instalação e detecção contra posições sintéticas conhecidas. Ainda não
-existe meta de cobertura ou métrica de reconhecimento de símbolos musicais.
+verificam instalação, detecção e métricas contra dados sintéticos conhecidos.
+Ainda não existe meta de cobertura nem avaliação independente de símbolos reais.
 
 ## Demonstração local e API
 
@@ -178,6 +178,64 @@ O manifesto reflete a inspeção visual: 10 pautas em *Pirates*, 9 em *Quando*,
 e 13 nas duas imagens centrais foram corrigidas após conferir os sistemas.
 Igualdade de contagem não mede recall ou falsos positivos por posição; isso requer
 anotações de referência das linhas em cada imagem.
+
+### Referências anotadas e métricas (Fase 5.1)
+
+O formato JSON versionado e os estados `present`, `absent` e `unknown` estão em
+`docs/annotation-format.md`. Para gerar sugestões das quatro imagens locais,
+sem convertê-las em referência:
+
+```bash
+python -m tools.evaluate_annotations suggest \
+  --images-dir outputs/teste-real \
+  --manifest tests/data/real_staff_counts.json \
+  --output-dir outputs/fase5-1-suggestions
+```
+
+Use uma pasta de saída nova. Cada imagem gera `*.suggestions.json`,
+`*.reference-draft.json` e `*.review.png` com IDs de pautas (`s0`...), sistemas
+e claves. As contagens do manifesto aparecem apenas como informação preliminar.
+Abra imagem e PNG lado a lado; corrija no rascunho regiões e cinco linhas,
+ordem/pertencimento aos sistemas e estado de cada clave. Marque cada pauta
+revisada `confirmed`, cada sistema conferido `confirmed`, e use `coverage: complete`
+somente quando a respectiva lista for exaustiva. Uma clave não conferida fica
+`unknown`, nunca `absent`. Defina `split: development` para essas quatro imagens,
+pois já orientaram o desenvolvimento; reserve `test` para imagens independentes.
+
+```bash
+python -m tools.evaluate_annotations check \
+  --annotation outputs/fase5-1-suggestions/IMAGEM.reference-draft.json \
+  --images-dir outputs/teste-real
+python -m tools.evaluate_annotations confirm \
+  --annotation outputs/fase5-1-suggestions/IMAGEM.reference-draft.json \
+  --images-dir outputs/teste-real \
+  --output outputs/referencias-validadas/IMAGEM.reference.json \
+  --reviewer SEU_IDENTIFICADOR --confirm-reviewed
+python -m tools.evaluate_annotations evaluate \
+  --annotations-dir outputs/referencias-validadas \
+  --images-dir outputs/teste-real \
+  --report outputs/relatorio-anotado.json \
+  --errors-dir outputs/erros-anotados
+```
+
+Crie a pasta de referências antes de `confirm`; o comando não sobrescreve
+arquivos. `check` valida estrutura, dimensões e SHA-256, mas não aprova o
+conteúdo. `confirm` exige sua revisão explícita. `evaluate` usa apenas arquivos
+`*.reference.json` validados; rascunhos não entram nas métricas. Sem referências
+validadas, retorna `not_evaluable`. Saídas em `outputs/` são ignoradas pelo Git.
+Os códigos de saída são 0 para execução válida (inclusive sem referência), 2
+para formato/revisão inválidos, 3 para imagem/arquivo ausente e 4 para falha de
+processamento. O relatório JSON separa `development` e `test` em `by_split`.
+
+Precision = TP/(TP+FP), recall = TP/(TP+FN), e F1 é a média harmônica das duas.
+Pautas usam pareamento espacial um-para-um; sistemas usam as pautas pareadas e
+pares que devem ficar juntos; claves usam estados conhecidos e IoU da caixa
+quando anotada. Relatórios mostram denominadores e `not_evaluable` quando a
+referência é incompleta. Sem negativos conferidos, precision de claves não é
+estimada. Tolerâncias e decisões estão em
+`docs/decisions/0007-annotation-evaluation.md`. Resultados nas quatro imagens
+locais são diagnósticos de desenvolvimento; uma avaliação de generalização exige
+um conjunto `test` independente, anotado antes de ajustar detectores.
 
 Garantido pelos testes sintéticos: dez casos positivos (deslocamento, espessuras
 1–4 px, espaçamentos 6–24 px, duas pautas, símbolos simples, interrupções curtas e

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FluteOMR · Editor de reconhecimento</title>
+  <link rel="stylesheet" href="/app.css">
+  <script src="/geometry.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <section id="home-screen" class="home-screen" aria-labelledby="home-title">
+    <header class="home-header"><div class="brand"><span class="brand-mark">𝄞</span><strong>FluteOMR</strong></div><span>Revisão OMR local</span></header>
+    <main class="home-content">
+      <div class="home-intro"><span class="section-label">RECONHECIMENTO</span><h1 id="home-title">Escolha uma partitura para revisar</h1><p>Veja as predições do FluteOMR e corrija apenas o que for necessário. Correções operacionais não validam referências científicas.</p></div>
+      <div class="home-list-heading"><h2>Partituras disponíveis</h2><span id="home-count"></span></div>
+      <p id="home-error" class="notice" role="alert" hidden></p>
+      <div id="home-pages" class="home-pages" aria-label="Partituras disponíveis"></div>
+      <p class="home-footnote">Zero pendências conhecidas não significa reconhecimento perfeito. Importação e exportação musical virão em fases futuras.</p>
+    </main>
+  </section>
+  <div id="editor-shell" hidden>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">𝄞</span><strong>FluteOMR</strong></div>
+    <button id="back-home" title="Voltar às partituras">← Início</button>
+    <select id="page-select" aria-label="Partitura aberta"></select>
+    <span class="mode active">Reconhecimento</span>
+    <button class="mode" disabled title="Edição musical ainda não implementada">Edição musical · futuro</button>
+    <div class="top-spacer"></div>
+    <button id="left-toggle" class="icon-button" title="Recolher navegação" aria-label="Recolher navegação">☰</button>
+    <button id="zoom-out" class="icon-button" aria-label="Reduzir zoom">−</button>
+    <span id="zoom-label" class="zoom-label">100%</span>
+    <button id="zoom-in" class="icon-button" aria-label="Ampliar zoom">+</button>
+    <button id="fit-width">Largura</button>
+    <button id="fit-page">Página</button>
+    <button id="overlay-toggle" aria-pressed="true">Sobreposições</button>
+    <button id="right-toggle" class="icon-button" title="Recolher inspetor" aria-label="Recolher inspetor">▤</button>
+    <button id="save" class="primary" disabled>Salvar correções</button>
+  </header>
+  <div class="workspace" id="workspace">
+    <aside class="left-panel" id="left-panel">
+      <div class="panel-heading"><span>NAVEGAÇÃO</span><span id="page-count">Imagens locais</span></div>
+      <div class="summary" id="summary"></div>
+      <div class="filters" role="group" aria-label="Filtrar claves">
+        <button data-filter="all" class="active">Todos</button>
+        <button data-filter="pending">Pendentes</button>
+        <button data-filter="corrected">Corrigidos</button>
+      </div>
+      <div class="list-heading">PAUTAS E CLAVES</div>
+      <div id="clef-list" class="clef-list" role="list"></div>
+      <div class="left-footer">Sistemas exibidos como agrupamento provisório quando ambíguos.</div>
+    </aside>
+    <main class="main-panel">
+      <div class="canvas-toolbar">
+        <div><strong>Partitura original</strong><span id="page-meta"></span></div>
+        <div class="toolbar-actions">
+          <button id="previous-pending">Pendência anterior</button>
+          <button id="next-pending">Próxima pendência</button>
+        </div>
+      </div>
+      <div class="notice" id="notice" role="status">Carregando partitura…</div>
+      <div class="viewport" id="viewport" aria-label="Imagem da partitura com detecções">
+        <div class="image-stage" id="image-stage">
+          <img id="score-image" alt="Página original da partitura" draggable="false">
+          <div id="overlay-layer" class="overlay-layer"></div>
+          <div id="drawing-box" class="drawing-box" hidden></div>
+        </div>
+      </div>
+      <div class="canvas-foot">Imagem original · coordenadas em pixels da página · sobreposições não alteram o arquivo</div>
+    </main>
+    <aside class="right-panel" id="right-panel">
+      <div class="panel-heading">INSPEÇÃO DA CLAVE</div>
+      <div id="inspector-empty" class="empty-inspector">Selecione uma clave na partitura ou na lista.</div>
+      <div id="inspector" hidden>
+        <div class="inspector-title"><h1 id="selected-title"></h1><span id="selected-badge" class="badge"></span></div>
+        <p id="selected-source" class="muted"></p>
+        <div class="crop-wrap"><canvas id="crop" width="560" height="280" aria-label="Recorte ampliado da região da clave"></canvas></div>
+        <p class="caption" id="crop-caption"></p>
+        <p id="diagnostic" class="diagnostic"></p>
+        <div class="section-label">DECISÃO DO USUÁRIO</div>
+        <label for="clef-kind">Tipo de clave visto</label>
+        <select id="clef-kind">
+          <option value="treble">Clave de sol</option>
+          <option value="bass">Clave de fá</option>
+          <option value="alto">Clave de dó</option>
+          <option value="other">Outra clave</option>
+        </select>
+        <div class="region-actions">
+          <button id="use-current" title="Usar a caixa existente na correção">Usar região atual</button>
+          <button id="draw-region">Desenhar região</button>
+        </div>
+        <div id="region-hint" class="caption"></div>
+        <button id="apply-correction" class="primary wide-button">Aplicar correção</button>
+        <button id="mark-absent" class="wide-button">Confirmar ausência de qualquer clave</button>
+        <button id="restore-auto" class="wide-button">Remover correção · voltar à predição</button>
+        <div class="detail-grid">
+          <div><span>Detector</span><strong id="prediction-status"></strong></div>
+          <div><span>Tipo atual</span><strong id="effective-kind"></strong></div>
+          <div class="wide"><span>Região atual</span><strong id="effective-region"></strong></div>
+        </div>
+        <p class="science-note">Predições automáticas não são confirmações humanas. Estas correções não validam referências científicas.</p>
+      </div>
+    </aside>
+  </div>
+  </div>
+  <div id="toast" class="toast" role="alert" hidden></div>
+</body>
+</html>

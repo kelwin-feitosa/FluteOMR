@@ -1,0 +1,40 @@
+# Ambientes e ferramentas locais
+.venv/
+venv/
+.tools/
+.agents/
+.codex/
+.aws/
+.gh/
+
+# Python, testes e empacotamento
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage*
+htmlcov/
+build/
+dist/
+
+# Credenciais e configuração privada
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*
+
+# Partituras privadas e resultados gerados
+private/
+assets/private/
+outputs/
+results/
+*.log
+
+# Editor e sistema
+.idea/
+.vscode/
+*~
+.DS_Store

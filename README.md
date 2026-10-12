@@ -6,8 +6,9 @@ exportações MSCZ e PDF musical dependerão de integração apropriada.
 
 ## Estado atual e limites
 
-O núcleo detecta a geometria de pautas horizontais de cinco linhas em PNG/JPEG,
-com saída JSON e imagem de depuração. Não interpreta notas, claves ou outros
+O núcleo detecta pautas horizontais de cinco linhas em PNG/JPEG, agrupa sistemas
+quando há evidência geométrica e oferece um detector experimental de clave de sol.
+Há saída JSON e imagem de depuração. Não interpreta notas, ritmos ou outros
 símbolos. Não há conversão PDF, exportação, interface gráfica ou modelos de ML.
 O algoritmo é próprio; OMRs existentes não substituem o núcleo.
 
@@ -98,6 +99,51 @@ Depuração: candidatos brutos laranja, linhas aceitas vermelhas, regiões azuis
 O diagnóstico `contrast_threshold_adjusted` indica um limiar mais claro que Otsu;
 `contrast_retry` indica uma segunda tentativa após não encontrar grupos.
 
+### Sistemas musicais (experimental)
+
+`Staff` é a geometria de cinco linhas; `MusicSystem` agrupa pautas lidas na mesma
+faixa da página. Execute `python -m fluteomr partitura.png --systems --debug
+outputs/systems.png` para acrescentar `system_grouping` ao JSON e contornos
+coloridos numerados à depuração. A saída legada sem `--systems` permanece igual.
+Em Python, use `group_staffs(result.staffs)` após `detect_staffs(image)`. Cada
+sistema contém `id` sequencial, `staff_indices` da detecção original, `staffs` e
+`region`. O status `ambiguous` significa que a separação geométrica não é
+justificável; pautas isoladas nesse caso são provisórias. A decisão e seus limites
+estão em `docs/decisions/0004-system-grouping.md`.
+
+### Partes instrumentais (modelo interno)
+
+Uma `Part` é a sequência lógica associada a pautas de sistemas diferentes; não
+equivale a uma pauta. `ScorePage` guarda sistemas e partes, e `StaffRef` mantém os
+índices originais. Nenhum instrumento é inferido da imagem. Por exemplo:
+
+```python
+from fluteomr import group_staffs, propose_parts_by_order
+
+grouping = group_staffs(result.staffs)
+page = propose_parts_by_order(grouping)  # hipótese explícita, se não ambígua
+```
+
+`add_part(page, "Flauta transversal")` registra um instrumento informado pelo
+usuário; `link_staff(page, part_id, system_id, staff_index)` cria ou corrige uma
+ligação manual e `unlink_staff` a remove. Essas funções retornam nova página.
+Sistemas de tamanhos diferentes ou agrupamento ambíguo não geram vínculos
+automáticos. Decisão: `docs/decisions/0005-logical-parts.md`.
+
+### Clave de sol (experimental)
+
+`python -m fluteomr partitura.png --clefs --debug outputs/clefs.png` acrescenta
+`clef_detection.observations` ao JSON e caixas verdes às claves aceitas. É
+possível combinar `--clefs` e `--systems`. Em Python, use
+`detect_treble_clefs(image, result)` após detectar as pautas. Cada observação
+tem índice da pauta e status `detected`, `inconclusive` (mais de um componente
+plausível) ou `no_treble` (nenhuma evidência que atenda às regras). `no_treble`
+não comprova ausência de clave. Um resultado aceito traz tipo `treble`, caixa
+inclusiva e evidências geométricas; não há confiança probabilística. O método
+suprime linhas, procura componentes no início da pauta e verifica altura,
+largura e expansão de curvas em relação ao espaçamento. Decisão:
+`docs/decisions/0006-treble-clef-experiment.md`.
+
 ## Algoritmo, avaliação e limites
 
 Escala de cinza e Otsu iniciam a máscara de pixels escuros. Para recuperar linhas
@@ -147,7 +193,8 @@ suas razões. Não contam como acertos da avaliação principal. Inclinação, g
 lacunas, pautas ocupando menos de 25% da largura, contraste não uniforme, fotografias,
 manuscritos e pautas lado a lado não têm suporte garantido. Símbolos ou regras muito
 longas podem dominar a projeção. Os testes sintéticos não demonstram precisão em
-partituras reais. A etapa seguinte deverá validar exemplos reais autorizados.
+partituras reais. O detector de claves ainda precisa de caixas anotadas e fontes
+variadas para avaliação rigorosa.
 
 ## Estrutura e contribuição
 
@@ -171,6 +218,6 @@ Novas alterações só serão verificadas remotamente após o push aprovado.
 
 ## Próxima etapa técnica
 
-Validar a geometria em um conjunto pequeno de imagens reais autorizadas, com
-anotações manuais e casos de falha; depois avaliar correção de pequenas inclinações.
-Conversão PDF e localização de cabeças de notas ficam para tarefas separadas.
+Anotar sistemas e caixas de claves em imagens autorizadas, testar fontes diversas
+e usar conectores de sistema como evidência adicional. Depois avaliar correção de
+pequenas inclinações. Conversão PDF e notas ficam para tarefas separadas.

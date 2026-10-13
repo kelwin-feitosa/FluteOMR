@@ -20,7 +20,7 @@ def evaluate_manifest(manifest_path: Path, images_dir: Path) -> list[dict]:
         raise ValueError("manifesto inválido ou versão não suportada")
     rows = []
     for example in manifest["examples"]:
-        if example["split"] not in ("development", "test"):
+        if example["split"] not in ("development", "validation", "test"):
             raise ValueError("split inválido")
         if example["reference_status"] not in ("source_authored", "validated", "draft"):
             raise ValueError("estado da referência inválido")

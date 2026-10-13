@@ -112,6 +112,8 @@ def _align(reference: tuple[Event, ...], prediction: tuple[Event, ...]) -> dict:
             "pitch_errors",
             "octave_errors",
             "duration_errors",
+            "pitch_correct_aligned",
+            "duration_correct_aligned",
         ),
         0,
     )
@@ -119,8 +121,12 @@ def _align(reference: tuple[Event, ...], prediction: tuple[Event, ...]) -> dict:
     while i or j:
         operation = operations[i][j]
         if operation in ("match", "substitution"):
+            truth, found = reference[i - 1], prediction[j - 1]
+            counts["pitch_correct_aligned"] += (
+                truth.step == found.step and truth.octave == found.octave
+            )
+            counts["duration_correct_aligned"] += truth.duration == found.duration
             if operation == "substitution":
-                truth, found = reference[i - 1], prediction[j - 1]
                 counts["pitch_errors"] += truth.step != found.step
                 counts["octave_errors"] += truth.octave != found.octave
                 counts["duration_errors"] += truth.duration != found.duration
@@ -166,11 +172,14 @@ def evaluate_music(reference_xml: bytes, prediction: MusicScore) -> dict:
             "pitch_errors",
             "octave_errors",
             "duration_errors",
+            "pitch_correct_aligned",
+            "duration_correct_aligned",
         ),
         0,
     )
     measure_errors = {"omissions": 0, "insertions": 0}
     unsupported = {}
+    skipped_reference_events = skipped_predicted_events = 0
     for part in (*reference, *predicted):
         for measure in part:
             for event in measure.events:
@@ -212,6 +221,8 @@ def evaluate_music(reference_xml: bytes, prediction: MusicScore) -> dict:
                 continue
             truth, found = truth_part[number], found_part[number]
             if any(event.unsupported for event in (*truth, *found)):
+                skipped_reference_events += len(truth)
+                skipped_predicted_events += len(found)
                 continue
             for key, value in _align(truth, found).items():
                 totals[key] += value
@@ -232,5 +243,28 @@ def evaluate_music(reference_xml: bytes, prediction: MusicScore) -> dict:
         "predicted_events": predicted_count,
         "measure_errors": measure_errors,
         "unsupported": unsupported,
+        "skipped_reference_events": skipped_reference_events,
+        "skipped_predicted_events": skipped_predicted_events,
+        "inconclusive_predicted_events": sum(
+            event.unsupported == "inconclusive"
+            for part in predicted
+            for measure in part
+            for event in measure.events
+        ),
+        "duration_coverage": {
+            "resolved": sum(
+                event.duration is not None
+                for part in predicted
+                for measure in part
+                for event in measure.events
+            ),
+            "total": predicted_count,
+        },
+        "aligned_events": totals["matches"] + totals["substitutions"],
+        "full_match_fraction": (
+            "not_evaluated"
+            if unsupported or not expected_count
+            else {"matched": totals["matches"], "expected": expected_count}
+        ),
         **totals,
     }

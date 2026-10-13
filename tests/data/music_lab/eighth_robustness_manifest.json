@@ -1,0 +1,23 @@
+{
+  "format_version": 1,
+  "examples": [
+    {
+      "id": "dev_down_flags_musescore_300dpi",
+      "image": "dev_down_flags-staff.png",
+      "reference": "dev_down_flags.musicxml",
+      "origin": "original_score_rendered_musescore_4.7.4_300dpi",
+      "split": "development",
+      "reference_status": "source_authored",
+      "configured": {"measure_left": 200, "measure_right": 520}
+    },
+    {
+      "id": "dev_long_beam_musescore_300dpi",
+      "image": "dev_long_beam-staff.png",
+      "reference": "dev_long_beam.musicxml",
+      "origin": "original_score_rendered_musescore_4.7.4_300dpi",
+      "split": "development",
+      "reference_status": "source_authored",
+      "configured": {"measure_left": 200, "measure_right": 520}
+    }
+  ]
+}

@@ -69,6 +69,7 @@ def _shape(
     ry: int,
     core_offsets: tuple[tuple[int, int], ...],
     rim_offsets: tuple[tuple[int, int], ...],
+    side_offsets: tuple[tuple[tuple[int, int], ...], ...],
 ) -> tuple[str, float] | None:
     if x - rx < 0 or x + rx >= width or y - ry < 0 or y + ry >= height:
         return None
@@ -78,10 +79,17 @@ def _shape(
     rim = sum(ink[(y + dy) * width + x + dx] for dx, dy in rim_offsets) / len(
         rim_offsets
     )
-    if core >= 0.58 and rim >= 0.34:
+    if core >= 0.58 and rim >= 0.60:
         return "filled", min(core, rim)
-    if core <= 0.34 and rim >= 0.40:
-        return "hollow", rim - core / 2
+    if core <= 0.34 and rim - core / 2 >= 0.44:
+        # Uma haste/feixe paralelo pode simular bordas superior e inferior,
+        # mas uma cabeça vazada precisa de tinta nos dois lados do anel.
+        if all(
+            sum(ink[(y + dy) * width + x + dx] for dx, dy in offsets) / len(offsets)
+            >= 0.35
+            for offsets in side_offsets
+        ):
+            return "hollow", rim - core / 2
     return None
 
 
@@ -144,6 +152,14 @@ def detect_noteheads(
         for dx in range(-rx, rx + 1)
         if 0.55 <= (dx / rx) ** 2 + (dy / ry) ** 2 <= 1.15
     )
+    side_offsets = tuple(
+        tuple(
+            (dx, dy)
+            for dx, dy in rim_offsets
+            if dx * side > 0 and abs(dx) >= 0.55 * rx and abs(dy) <= 0.6 * ry
+        )
+        for side in (-1, 1)
+    )
     candidates = []
     for degree in range(-4, 13):
         center = staff.lines[-1].y - degree * spacing / 2
@@ -161,6 +177,7 @@ def detect_noteheads(
                     ry,
                     core_offsets,
                     rim_offsets,
+                    side_offsets,
                 )
                 if match is None:
                     continue

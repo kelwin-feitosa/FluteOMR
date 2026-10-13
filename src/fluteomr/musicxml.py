@@ -12,6 +12,16 @@ def to_musicxml(score: MusicScore) -> bytes:
         raise ValueError(f"transcrição incompleta: {', '.join(issues)}")
     if not score.parts:
         raise ValueError("partitura sem partes")
+    divisions = (
+        2
+        if any(
+            note.duration.kind == "eighth"
+            for part in score.parts
+            for measure in part.measures
+            for note in measure.notes
+        )
+        else 1
+    )
     root = ET.Element("score-partwise", version="4.0")
     part_list = ET.SubElement(root, "part-list")
     for part in score.parts:
@@ -22,7 +32,7 @@ def to_musicxml(score: MusicScore) -> bytes:
         for measure in part.measures:
             element = ET.SubElement(part_element, "measure", number=str(measure.number))
             attributes = ET.SubElement(element, "attributes")
-            ET.SubElement(attributes, "divisions").text = "1"
+            ET.SubElement(attributes, "divisions").text = str(divisions)
             time = ET.SubElement(attributes, "time")
             ET.SubElement(time, "beats").text = str(measure.time_signature.beats)
             ET.SubElement(time, "beat-type").text = str(
@@ -37,9 +47,11 @@ def to_musicxml(score: MusicScore) -> bytes:
                 ET.SubElement(pitch, "step").text = note.pitch.step
                 ET.SubElement(pitch, "octave").text = str(note.pitch.octave)
                 ET.SubElement(note_element, "duration").text = str(
-                    note.duration.quarters
+                    note.duration.quarters * divisions
                 )
                 ET.SubElement(note_element, "type").text = note.duration.kind
+                if note.beam is not None:
+                    ET.SubElement(note_element, "beam", number="1").text = note.beam
     xml = ET.tostring(root, encoding="utf-8", xml_declaration=True)
     return xml.replace(
         b"?>",

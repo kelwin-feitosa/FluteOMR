@@ -1,6 +1,7 @@
 """Modelo musical mínimo, independente da geometria de página e das interfaces."""
 
 from dataclasses import asdict, dataclass
+from fractions import Fraction
 from typing import Literal
 
 from fluteomr.staff_detection import Region
@@ -16,11 +17,13 @@ class Pitch:
 
 @dataclass(frozen=True)
 class Duration:
-    kind: Literal["quarter", "half"]
+    kind: Literal["eighth", "quarter", "half"]
 
     @property
-    def quarters(self) -> int:
-        return 1 if self.kind == "quarter" else 2
+    def quarters(self) -> Fraction:
+        return {"eighth": Fraction(1, 2), "quarter": Fraction(1), "half": Fraction(2)}[
+            self.kind
+        ]
 
 
 @dataclass(frozen=True)
@@ -35,6 +38,7 @@ class Note:
     duration_origin: Origin = "image"
     candidate_id: str | None = None
     source_page: int = 1
+    beam: Literal["begin", "continue", "end"] | None = None
 
     @property
     def status(self) -> Literal["recognized", "inconclusive"]:

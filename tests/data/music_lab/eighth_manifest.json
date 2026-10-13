@@ -1,0 +1,41 @@
+{
+  "format_version": 1,
+  "examples": [
+    {
+      "id": "dev_eighth_flags_musescore_300dpi",
+      "image": "dev_eighth_flags-staff.png",
+      "reference": "dev_eighth_flags.musicxml",
+      "origin": "original_score_rendered_musescore_4.7.4_300dpi",
+      "split": "development",
+      "reference_status": "source_authored",
+      "configured": {"measure_left": 200, "measure_right": 520}
+    },
+    {
+      "id": "dev_eighth_pair_musescore_300dpi",
+      "image": "dev_eighth_pair-staff.png",
+      "reference": "dev_eighth_pair.musicxml",
+      "origin": "original_score_rendered_musescore_4.7.4_300dpi",
+      "split": "development",
+      "reference_status": "source_authored",
+      "configured": {"measure_left": 200, "measure_right": 520}
+    },
+    {
+      "id": "dev_eighth_beams_musescore_300dpi",
+      "image": "dev_eighth_beams-staff.png",
+      "reference": "dev_eighth_beams.musicxml",
+      "origin": "original_score_rendered_musescore_4.7.4_300dpi",
+      "split": "development",
+      "reference_status": "source_authored",
+      "configured": {"measure_left": 200, "measure_right": 520}
+    },
+    {
+      "id": "holdout_eighth_mix_musescore_300dpi",
+      "image": "holdout_eighth_mix-staff.png",
+      "reference": "holdout_eighth_mix.musicxml",
+      "origin": "original_score_rendered_musescore_4.7.4_300dpi",
+      "split": "validation",
+      "reference_status": "source_authored",
+      "configured": {"measure_left": 200, "measure_right": 2020}
+    }
+  ]
+}

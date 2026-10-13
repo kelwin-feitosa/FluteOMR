@@ -1,15 +1,16 @@
 """Pipeline experimental de um compasso: PNG -> notas inferidas -> modelo musical."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from PIL import Image
 
-from fluteomr.music import Clef, Measure, MusicPart, MusicScore, TimeSignature
+from fluteomr.music import Clef, Duration, Measure, MusicPart, MusicScore, TimeSignature
 from fluteomr.notes import (
     NoteheadObservation,
     detect_noteheads,
     notes_from_observations,
 )
+from fluteomr.rhythm import RhythmEvidence, detect_rhythm_evidence
 from fluteomr.staff_detection import Region, detect_staffs
 from fluteomr.symbols import (
     BarlineCandidate,
@@ -25,6 +26,39 @@ class TranscriptionResult:
     heads: tuple[NoteheadObservation, ...]
     stems: tuple[StemCandidate, ...]
     barlines: tuple[BarlineCandidate, ...]
+    rhythm_evidence: tuple[RhythmEvidence, ...] = ()
+
+
+def _interpret_notes(image, staff, threshold, heads, barlines=()):
+    stems = linked_stems(image, staff, threshold, heads)
+    marks = detect_rhythm_evidence(
+        image, staff, threshold, heads, stems, barlines=barlines
+    )
+    by_head = {mark.head_id: mark for mark in marks}
+    notes = []
+    for note in notes_from_observations(heads, staff, 0):
+        mark = by_head.get(note.candidate_id)
+        if mark is None:
+            notes.append(note)
+        elif mark.status == "inconclusive":
+            notes.append(
+                replace(
+                    note,
+                    duration=None,
+                    duration_origin="unknown",
+                    diagnostics=(*note.diagnostics, mark.kind, mark.reason),
+                )
+            )
+        else:
+            notes.append(
+                replace(
+                    note,
+                    duration=Duration("eighth"),
+                    beam=mark.beam_position,
+                    diagnostics=(*note.diagnostics, mark.kind),
+                )
+            )
+    return tuple(notes), stems, marks
 
 
 def transcribe_one_measure(
@@ -45,7 +79,7 @@ def transcribe_one_measure(
     heads = detect_noteheads(
         image, staff, result.threshold, measure_left, measure_right
     )
-    notes = notes_from_observations(heads, staff, 0)
+    notes, _, _ = _interpret_notes(image, staff, result.threshold, heads)
     measure = Measure(
         1, notes, TimeSignature(beats, 4, "configuration"), "configuration"
     )
@@ -94,7 +128,7 @@ def transcribe_measures(
     ):
         raise ValueError("barras internas próximas ou ambíguas")
     boundaries = [content_left, *(bar.x for bar in accepted), content_right]
-    notes = notes_from_observations(heads, staff, 0)
+    notes, stems, marks = _interpret_notes(image, staff, result.threshold, heads, bars)
     measures = []
     for index, (left, right) in enumerate(
         zip(boundaries, boundaries[1:], strict=False), 1
@@ -132,6 +166,7 @@ def transcribe_measures(
     return TranscriptionResult(
         MusicScore((part,)),
         heads,
-        linked_stems(image, staff, result.threshold, heads),
+        stems,
         bars,
+        marks,
     )

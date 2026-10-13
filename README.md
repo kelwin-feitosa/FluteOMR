@@ -380,7 +380,8 @@ conteúdo reservado, mas usam a mesma família de desenho programático.
 
 O modo original de um compasso não detecta barras. O modo opt-in da Sprint 1B
 detecta barras internas em pautas horizontais limpas. Fórmula, clave, acidentes,
-pausas, colcheias, ligaduras e vozes seguem sem reconhecimento visual. Uma nota
+pausas, ligaduras e vozes seguem sem reconhecimento visual nesta etapa. Colcheias
+simples foram acrescentadas experimentalmente na Sprint 1C-B. Uma nota
 omitida pode escapar da checagem se as durações restantes ainda somarem 4/4.
 Resultados sintéticos não medem
 precisão em partituras reais; fontes, gravações e layouts independentes precisam
@@ -440,7 +441,7 @@ original e execute o caso de desenvolvimento versionado:
 ```
 
 O manifesto versão 1 associa ID, nome da imagem, MusicXML de referência, origem,
-`development`/`test`, estado `source_authored`/`draft`/`validated` e os limites
+`development`/`validation`/`test`, estado `source_authored`/`draft`/`validated` e os limites
 configurados do compasso. `draft` é transcrito, mas retorna `not_evaluated`; só
 marque `validated` após revisão humana real. O exemplo versionado é sintético e
 `development`, não demonstra generalização. Mantenha imagens externas em
@@ -450,7 +451,12 @@ O alinhamento usa números explícitos de compasso; dentro de cada compasso,
 emprega custo unitário para inserir, omitir ou substituir notas, preferindo
 substituição em empates. Partes ainda são pareadas pela ordem. Durações são comparadas como frações
 de semínima via `divisions` do MusicXML. O relatório separa erros de altura,
-oitava e duração, além de compassos extras/ausentes. Pausas, alterações
+oitava e duração, além de compassos extras/ausentes. `matches` exige altura,
+oitava e duração juntas; `pitch_correct_aligned` e `duration_correct_aligned`
+usam apenas pares alinhados. `duration_coverage` indica quantos eventos previstos
+têm duração. Um compasso com símbolo sem suporte ou nota inconclusiva fica sem
+pontuação: `skipped_reference_events` e `skipped_predicted_events` mostram a
+cobertura perdida, e `full_match_fraction` vira `not_evaluated`. Pausas, alterações
 cromáticas, acordes e ornamentos ficam `unsupported`; a notação gráfica é
 `not_evaluated`. `xml_export=well_formed_not_schema_validated` verifica apenas
 parsing XML, não compatibilidade completa com MuseScore. O fluxo de anotação
@@ -466,6 +472,101 @@ alinhadas ao PNG dividindo por 48; a escala precisa ser verificada para cada
 DPI e versão. Os arquivos experimentais ficam em `outputs/musescore-1c-a/`.
 Essa ferramenta permanece externa e opcional; consulte a decisão 0013.
 
+### Colcheias experimentais (Sprint 1C-B)
+
+O pipeline reconhece bandeirolas simples e feixes simples ligados a hastes de
+cabeças preenchidas. A duração é `1/2` semínima; feixes aceitos aparecem como
+`begin`/`continue`/`end` no MusicXML. Feixe duplo detectado fica inconclusivo e
+bloqueia a exportação. O JSON do modo `--auto-bars` inclui `rhythm_evidence` em
+`symbol_diagnostics`. Clave, fórmula e limites externos continuam configurados.
+
+Para repetir a avaliação local, renderize as quatro referências próprias com o
+MuseScore Flatpak 4.7.4, se disponível, e recorte somente a primeira pauta. O
+recorte é preparação manual documentada, não uma detecção automática:
+
+```bash
+mkdir -p outputs/sprint-1c-b
+for name in dev_eighth_flags dev_eighth_pair dev_eighth_beams holdout_eighth_mix; do
+  flatpak run --env=QT_QPA_PLATFORM=offscreen org.musescore.MuseScore \
+    -r 300 -o "outputs/sprint-1c-b/$name.png" "tests/data/music_lab/$name.musicxml"
+done
+.venv/bin/python -c "from PIL import Image; from pathlib import Path; p=Path('outputs/sprint-1c-b'); names=('dev_eighth_flags','dev_eighth_pair','dev_eighth_beams','holdout_eighth_mix'); [(lambda n: Image.open(p/f'{n}-1.png').crop((250,475,2300 if n=='holdout_eighth_mix' else 850,700)).save(p/f'{n}-staff.png'))(n) for n in names]"
+.venv/bin/python -m tools.evaluate_music \
+  --manifest tests/data/music_lab/eighth_manifest.json \
+  --images-dir outputs/sprint-1c-b
+```
+
+O manifesto usa limite esquerdo 200; limite direito 520 nos três recortes de
+600 px e 2020 no recorte largo. Na Sprint 1C-B, a sequência de desenvolvimento
+teve 13/13 eventos correspondentes; o antigo caso reservado teve 3/6, com três
+durações erradas. Como ele já foi consultado, agora é `validation`, não teste
+cego. Os resultados são de partituras **originais renderizadas pelo mesmo
+programa**, não de partituras reais independentes. A abertura e o round-trip de
+um MusicXML com quatro colcheias preservaram eventos e marcadores de feixe no
+MuseScore. Veja as decisões 0014 e 0015. Não use o conjunto `test` para ajustar limiares.
+
+### Robustez rítmica e página inteira (Sprint 1C-B.2)
+
+Bandeirolas são avaliadas dos dois lados da haste descendente pela extensão e
+progressão da curva. Evidência fraca deixa a duração inconclusiva com diagnóstico
+`weak_flag_geometry` e bloqueia MusicXML. Feixes exigem tinta contínua entre
+pontas de hastes, sem limite máximo de distância entre cabeças; lacunas longas
+e barras aceitas impedem a relação. Cabeças vazadas exigem tinta nas duas
+laterais do contorno, preservando mínimas legítimas próximas de outras notas.
+Uma segunda passagem de projeção encontra pautas estreitas em páginas com
+margens largas, mantendo coordenadas originais.
+
+Para renderizar os exercícios próprios a 300 DPI e transcrever uma página
+completa sem recorte manual:
+
+```bash
+mkdir -p outputs/sprint-1c-b2
+for name in dev_down_flags dev_long_beam; do
+  flatpak run --env=QT_QPA_PLATFORM=offscreen org.musescore.MuseScore \
+    -r 300 -o "outputs/sprint-1c-b2/$name.png" "tests/data/music_lab/$name.musicxml"
+done
+.venv/bin/python -m tools.transcribe outputs/sprint-1c-b2/dev_down_flags-1.png \
+  --clef treble --time 4/4 --measure-left 450 --measure-right 770 \
+  --output outputs/sprint-1c-b2/dev_down_flags-predicted.musicxml
+```
+
+O avaliador usa recortes de 600×225 para os dois novos casos de desenvolvimento:
+
+```bash
+.venv/bin/python -c "from PIL import Image; from pathlib import Path; p=Path('outputs/sprint-1c-b2'); [(lambda n: Image.open(p/f'{n}-1.png').crop((250,475,850,700)).save(p/f'{n}-staff.png'))(n) for n in ('dev_down_flags','dev_long_beam')]"
+.venv/bin/python -m tools.evaluate_music \
+  --manifest tests/data/music_lab/eighth_robustness_manifest.json \
+  --images-dir outputs/sprint-1c-b2
+```
+
+`dev_down_flags` passou de 2/4 para 4/4 eventos completos; `dev_long_beam`
+manteve 5/5. A validação previamente consultada passou de 3/6 para 6/6. Dois
+novos exercícios de teste foram renderizados e avaliados uma vez após congelar
+o código, com 9/9 correspondências, **todos no mesmo renderizador MuseScore**.
+Isso não mede precisão em partituras reais nem generalização entre fontes.
+As imagens e os relatórios permanecem em `outputs/`. O teste reservado já foi
+aberto: uma futura avaliação cega exige novos exemplos.
+Uma exportação exploratória da mesma referência a 200 DPI encontrou três
+candidatos, dois inconclusivos; o compasso ficou `not_evaluated`. Essa escala
+ainda exige investigação.
+
+Para reproduzir esse resultado conhecido (não como novo teste cego), renderize
+`blind_down_flags` e `blind_long_beam` com o mesmo comando MuseScore acima e
+execute:
+
+```bash
+.venv/bin/python -m tools.evaluate_music \
+  --manifest tests/data/music_lab/eighth_blind_manifest.json \
+  --images-dir outputs/sprint-1c-b2
+flatpak run --env=QT_QPA_PLATFORM=offscreen org.musescore.MuseScore \
+  -o outputs/sprint-1c-b2/blind_long_beam-predicted.mscz \
+  outputs/sprint-1c-b2/blind_long_beam-predicted.musicxml
+```
+
+O segundo comando exige antes um MusicXML previsto gerado por
+`tools.transcribe`; a reexportação do MSCZ permite comparar eventos e
+marcadores `<beam>` em vez de comparar texto XML bruto.
+
 Garantido pelos testes sintéticos: dez casos positivos (deslocamento, espessuras
 1–4 px, espaçamentos 6–24 px, duas pautas, símbolos simples, interrupções curtas e
 ruído de 0,5%) retornam a contagem correta, cinco linhas ordenadas e erro máximo
@@ -477,7 +578,7 @@ Limitações registradas em `evaluation.json`: cinco linhas não musicais com a 
 geometria produzem falso positivo; rotação de 2° perde a pauta. Esses dois critérios
 futuros têm testes `xfail(strict=True)`; use `python -m pytest -q -rx` para listar
 suas razões. Não contam como acertos da avaliação principal. Inclinação, grandes
-lacunas, pautas ocupando menos de 25% da largura, contraste não uniforme, fotografias,
+lacunas, contraste não uniforme, fotografias,
 manuscritos e pautas lado a lado não têm suporte garantido. Símbolos ou regras muito
 longas podem dominar a projeção. Os testes sintéticos não demonstram precisão em
 partituras reais. O detector de claves ainda precisa de caixas anotadas e fontes
@@ -505,6 +606,6 @@ Novas alterações só serão verificadas remotamente após o push aprovado.
 
 ## Próxima etapa técnica
 
-Anotar sistemas e caixas de claves em imagens autorizadas, testar fontes diversas
-e usar conectores de sistema como evidência adicional. Depois avaliar correção de
-pequenas inclinações. Conversão PDF e notas ficam para tarefas separadas.
+Avaliar transcrições contra trechos reais de flauta com referências musicais
+revisadas por humanos e renderização independente. Depois, estabilizar ritmo
+em fontes variadas antes de ampliar para pausas e acidentes.

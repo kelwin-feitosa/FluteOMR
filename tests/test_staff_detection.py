@@ -68,6 +68,25 @@ def test_short_marks_do_not_become_lines():
     assert detect_staffs(image).status == "no_staff"
 
 
+def test_narrow_staff_on_full_page_keeps_original_coordinates():
+    image = Image.new("L", (1200, 1600), 255)
+    draw = ImageDraw.Draw(image)
+    for y in (420, 440, 460, 480, 500):
+        draw.line((300, y, 530, y), fill=0, width=2)
+    result = detect_staffs(image)
+    assert result.status == "detected"
+    assert result.staff_count == 1
+    assert [round(line.y) for line in result.staffs[0].lines] == [
+        420,
+        440,
+        460,
+        480,
+        500,
+    ]
+    assert result.staffs[0].region.left <= 300
+    assert result.staffs[0].region.right >= 530
+
+
 def test_five_filled_bands_are_not_staff_lines():
     image, _ = make_staff_image(spacing=12, thickness=8)
     assert detect_staffs(image).status == "no_staff"

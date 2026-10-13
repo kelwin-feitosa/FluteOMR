@@ -80,6 +80,7 @@ def main() -> None:
         report["symbol_diagnostics"] = {
             "barlines": [asdict(bar) for bar in analysis.barlines],
             "stems": [asdict(stem) for stem in analysis.stems],
+            "rhythm_evidence": [asdict(mark) for mark in analysis.rhythm_evidence],
         }
     print(json.dumps(report, ensure_ascii=False, indent=2))
     if args.debug and analysis:

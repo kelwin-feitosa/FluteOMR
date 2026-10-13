@@ -132,6 +132,35 @@ def test_fractional_duration_and_invalid_xml():
         evaluate_music(b"<broken", _score([[("E", 4, "quarter")]]))
 
 
+def test_alignment_reports_full_pitch_duration_and_coverage_separately():
+    reference = _xml([[("E", 4, 2, None), ("F", 4, 1, None)]])
+    score = _score([[("E", 5, "quarter"), ("F", 4, "quarter")]])
+    report = evaluate_music(reference, score)
+    assert report["matches"] == 0
+    assert report["aligned_events"] == 2
+    assert report["pitch_correct_aligned"] == 1
+    assert report["duration_correct_aligned"] == 1
+    assert report["full_match_fraction"] == {"matched": 0, "expected": 2}
+    assert report["duration_coverage"] == {"resolved": 2, "total": 2}
+
+
+def test_inconclusive_measure_is_explicitly_unscored():
+    reference = _xml([[("E", 4, 2, None), ("F", 4, 1, None)]])
+    score = _score([[("E", 4, "quarter"), ("F", 4, "quarter")]])
+    part = score.parts[0]
+    measure = part.measures[0]
+    unknown = replace(measure.notes[1], duration=None, duration_origin="unknown")
+    measure = replace(measure, notes=(measure.notes[0], unknown))
+    score = replace(score, parts=(replace(part, measures=(measure,)),))
+    report = evaluate_music(reference, score)
+    assert report["status"] == "partial"
+    assert report["inconclusive_predicted_events"] == 1
+    assert report["skipped_reference_events"] == 2
+    assert report["skipped_predicted_events"] == 2
+    assert report["full_match_fraction"] == "not_evaluated"
+    assert report["duration_coverage"] == {"resolved": 1, "total": 2}
+
+
 def test_lab_transcribes_before_reading_source_authored_reference(tmp_path):
     images = tmp_path / "images"
     images.mkdir()

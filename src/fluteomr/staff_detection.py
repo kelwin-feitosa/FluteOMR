@@ -98,15 +98,24 @@ def _horizontal_spans(row: bytes) -> list[tuple[int, int]]:
     return spans
 
 
-def _line_candidates(binary: bytes, width: int, height: int) -> tuple[StaffLine, ...]:
+def _line_candidates(
+    binary: bytes, width: int, height: int, *, narrow_page: bool = False
+) -> tuple[StaffLine, ...]:
     projection = [binary[y * width : (y + 1) * width].count(1) for y in range(height)]
-    minimum = max(width * 0.25, max(projection, default=0) * 0.6)
+    # Em página inteira uma pauta curta pode ocupar menos de 25% da largura.
+    # A segunda passagem usa uma fração menor, mantendo agrupamento/validação.
+    fraction = 0.10 if narrow_page else 0.25
+    minimum = (
+        width * fraction
+        if narrow_page
+        else max(width * fraction, max(projection, default=0) * 0.6)
+    )
     bands: list[list[tuple[int, int, tuple[int, int]]]] = []
     for y, count in enumerate(projection):
         if count < minimum:
             continue
         span = _horizontal_span(binary[y * width : (y + 1) * width])
-        if span is None or span[1] - span[0] + 1 < width * 0.25:
+        if span is None or span[1] - span[0] + 1 < width * fraction:
             continue
         if not bands or y != bands[-1][-1][0] + 1:
             bands.append([])
@@ -263,6 +272,11 @@ def detect_staffs(image: Image.Image) -> DetectionResult:
     binary = pixels.translate(bytes(int(i <= analysis_threshold) for i in range(256)))
     lines = _line_candidates(binary, gray.width, gray.height)
     groups = _group_candidates(lines, binary, gray.width, gray.height)
+    narrow_retried = False
+    if not groups:
+        narrow_retried = True
+        lines = _line_candidates(binary, gray.width, gray.height, narrow_page=True)
+        groups = _group_candidates(lines, binary, gray.width, gray.height)
     retried = False
     if not groups and background > threshold:
         # Só ampliar o limiar quando nenhum grupo foi encontrado. Otsu pode
@@ -276,6 +290,10 @@ def detect_staffs(image: Image.Image) -> DetectionResult:
             )
             lines = _line_candidates(binary, gray.width, gray.height)
             groups = _group_candidates(lines, binary, gray.width, gray.height)
+    if not groups:
+        narrow_retried = True
+        lines = _line_candidates(binary, gray.width, gray.height, narrow_page=True)
+        groups = _group_candidates(lines, binary, gray.width, gray.height)
     conflicting: set[int] = set()
     for (start, _), (other, _) in zip(groups, groups[1:], strict=False):
         if other - start < 5:
@@ -287,6 +305,8 @@ def detect_staffs(image: Image.Image) -> DetectionResult:
         diagnostics.append("contrast_threshold_adjusted")
     if retried:
         diagnostics.append("contrast_retry")
+    if narrow_retried:
+        diagnostics.append("narrow_page_retry")
     if conflicting:
         diagnostics.append("overlapping_five_line_groups")
     if not groups:

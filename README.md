@@ -425,6 +425,47 @@ Git. Barras duplas/finais, pautas pequenas sem ampliação e símbolos complexos
 seguem experimentais. A soma rítmica correta não prova ausência de notas perdidas.
 Detalhes da decisão estão em `docs/decisions/0011-symbol-relations-and-barlines.md`.
 
+### Laboratório de avaliação musical (Sprint 1C-A)
+
+O avaliador compara eventos previstos com uma referência MusicXML escrita
+separadamente; não lê essa referência durante a inferência. Gere o corpus
+original e execute o caso de desenvolvimento versionado:
+
+```bash
+.venv/bin/python -m tools.music_examples --output-dir outputs/sprint-1a/corpus
+.venv/bin/python -m tools.evaluate_music \
+  --manifest tests/data/music_lab/manifest.json \
+  --images-dir outputs/sprint-1a/corpus \
+  --report outputs/sprint-1c-a/report.json
+```
+
+O manifesto versão 1 associa ID, nome da imagem, MusicXML de referência, origem,
+`development`/`test`, estado `source_authored`/`draft`/`validated` e os limites
+configurados do compasso. `draft` é transcrito, mas retorna `not_evaluated`; só
+marque `validated` após revisão humana real. O exemplo versionado é sintético e
+`development`, não demonstra generalização. Mantenha imagens externas em
+`outputs/` e nunca use o conjunto `test` para ajustar limiares.
+
+O alinhamento usa números explícitos de compasso; dentro de cada compasso,
+emprega custo unitário para inserir, omitir ou substituir notas, preferindo
+substituição em empates. Partes ainda são pareadas pela ordem. Durações são comparadas como frações
+de semínima via `divisions` do MusicXML. O relatório separa erros de altura,
+oitava e duração, além de compassos extras/ausentes. Pausas, alterações
+cromáticas, acordes e ornamentos ficam `unsupported`; a notação gráfica é
+`not_evaluated`. `xml_export=well_formed_not_schema_validated` verifica apenas
+parsing XML, não compatibilidade completa com MuseScore. O fluxo de anotação
+geométrica das Fases 5.1–5.4 permanece separado desta referência musical.
+Veja `docs/decisions/0012-music-evaluation-lab.md`.
+
+MuseScore Studio 4.7.4, já disponível como Flatpak de usuário, foi testado
+opcionalmente com a referência original: `flatpak run org.musescore.MuseScore`.
+As exportações PNG, PDF, MSCZ, `mpos`, `spos` e `--score-elements` funcionaram.
+`mpos` fornece região do compasso e `spos` regiões de segmentos na altura da
+pauta, não caixas individuais de cabeças. Em 300 DPI, as coordenadas foram
+alinhadas ao PNG dividindo por 48; a escala precisa ser verificada para cada
+DPI e versão. Os arquivos experimentais ficam em `outputs/musescore-1c-a/`.
+Essa ferramenta permanece externa e opcional; consulte a decisão 0013.
+
 Garantido pelos testes sintéticos: dez casos positivos (deslocamento, espessuras
 1–4 px, espaçamentos 6–24 px, duas pautas, símbolos simples, interrupções curtas e
 ruído de 0,5%) retornam a contagem correta, cinco linhas ordenadas e erro máximo

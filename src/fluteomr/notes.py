@@ -177,13 +177,26 @@ def detect_noteheads(
                         () if stem else ("stem_not_confirmed",),
                     )
                 )
+    return _deduplicate_candidates(candidates, spacing)
+
+
+def _deduplicate_candidates(
+    candidates: list[NoteheadObservation], spacing: float
+) -> tuple[NoteheadObservation, ...]:
+    """Une sondas da mesma cabeça; mantém eventos próximos em `x` e grau distinto."""
     chosen = []
     for candidate in sorted(
         candidates, key=lambda c: (c.shape_score, c.stem_present), reverse=True
     ):
         if any(
             abs(candidate.center_x - previous.center_x) < 0.9 * spacing
-            and abs(candidate.center_y - previous.center_y) < 1.1 * spacing
+            and (
+                abs(candidate.center_y - previous.center_y) < 0.65 * spacing
+                or (
+                    abs(candidate.center_x - previous.center_x) < 0.35 * spacing
+                    and abs(candidate.center_y - previous.center_y) < 1.1 * spacing
+                )
+            )
             for previous in chosen
         ):
             continue

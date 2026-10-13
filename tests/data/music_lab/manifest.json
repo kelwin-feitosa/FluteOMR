@@ -1,0 +1,14 @@
+{
+  "format_version": 1,
+  "examples": [
+    {
+      "id": "dev_lines_spaces",
+      "image": "dev_lines_spaces.png",
+      "reference": "dev_lines_spaces.musicxml",
+      "origin": "original_programmatic_exercise",
+      "split": "development",
+      "reference_status": "source_authored",
+      "configured": {"clef": "treble", "time": "4/4", "measure_left": 110, "measure_right": 410}
+    }
+  ]
+}

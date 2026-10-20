@@ -4,7 +4,15 @@ from dataclasses import dataclass, replace
 
 from PIL import Image
 
-from fluteomr.music import Clef, Duration, Measure, MusicPart, MusicScore, TimeSignature
+from fluteomr.music import (
+    Clef,
+    Duration,
+    Instrument,
+    Measure,
+    MusicPart,
+    MusicScore,
+    TimeSignature,
+)
 from fluteomr.notes import (
     NoteheadObservation,
     detect_noteheads,
@@ -68,6 +76,8 @@ def transcribe_one_measure(
     measure_right: int,
     beats: int = 4,
     part_name: str | None = None,
+    instrument: Instrument | None = None,
+    normalize_heads: bool = True,
 ) -> MusicScore:
     """Clave de sol, fórmula e limites são configuração, nunca visão inferida."""
     if beats < 1:
@@ -77,7 +87,12 @@ def transcribe_one_measure(
         raise ValueError("a transcrição inicial exige exatamente uma pauta válida")
     staff = result.staffs[0]
     heads = detect_noteheads(
-        image, staff, result.threshold, measure_left, measure_right
+        image,
+        staff,
+        result.threshold,
+        measure_left,
+        measure_right,
+        normalize=normalize_heads,
     )
     notes, _, _ = _interpret_notes(image, staff, result.threshold, heads)
     measure = Measure(
@@ -90,6 +105,7 @@ def transcribe_one_measure(
         (0,),
         Clef("treble", "configuration"),
         (measure,),
+        instrument=instrument,
     )
     return MusicScore((part,))
 
@@ -101,6 +117,8 @@ def transcribe_measures(
     content_right: int,
     beats: int = 4,
     part_name: str | None = None,
+    instrument: Instrument | None = None,
+    normalize_heads: bool = True,
 ) -> TranscriptionResult:
     """Divide uma pauta pelos traços verticais inferidos dentro de limites dados.
 
@@ -114,7 +132,12 @@ def transcribe_measures(
         raise ValueError("a transcrição exige exatamente uma pauta válida")
     staff = result.staffs[0]
     heads = detect_noteheads(
-        image, staff, result.threshold, content_left, content_right
+        image,
+        staff,
+        result.threshold,
+        content_left,
+        content_right,
+        normalize=normalize_heads,
     )
     bars = detect_barlines(
         image, staff, result.threshold, content_left, content_right, heads
@@ -162,6 +185,7 @@ def transcribe_measures(
         (0,),
         Clef("treble", "configuration"),
         tuple(measures),
+        instrument=instrument,
     )
     return TranscriptionResult(
         MusicScore((part,)),

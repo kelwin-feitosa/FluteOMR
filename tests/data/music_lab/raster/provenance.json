@@ -1,0 +1,77 @@
+[
+  {
+    "image": "dev_down_flags-200.png",
+    "sha256": "4c784c28fa51617b0efe503afde8524a5a4b8e50efbcfddc980392d31e688048",
+    "size": [
+      250,
+      210
+    ],
+    "dpi": 200,
+    "renderer": "MuseScore Studio 4.7.4",
+    "music_font": "Not recorded in original render; renderer default",
+    "reference": "dev_down_flags.musicxml",
+    "reference_sha256": "31245263936e7ac49b190ac29408ec61c4f42332751cd5e625f27fc9de54bedf",
+    "preparation": "Lossless crop only; coordinates in source raster",
+    "crop": [
+      280,
+      280,
+      530,
+      490
+    ],
+    "local_source": "outputs/sprint-1c-b2/dev_down_flags-200dpi-1.png",
+    "source_sha256": "2381c77076a55f2ea7c0101f76b07abbff721e210fcb7589663ce456cc639afb",
+    "rights": "Original FluteOMR exercise; no third-party score. Generated raster output, not MuseScore code or font file.",
+    "split": "development",
+    "review": "source_authored_not_human_validated"
+  },
+  {
+    "image": "dev_down_flags-300.png",
+    "sha256": "2ccc4da3eec5a54c73a0074ae35a6f7749a726f82d7a557b53739e7dbdebd3fb",
+    "size": [
+      375,
+      315
+    ],
+    "dpi": 300,
+    "renderer": "MuseScore Studio 4.7.4",
+    "music_font": "Not recorded in original render; renderer default",
+    "reference": "dev_down_flags.musicxml",
+    "reference_sha256": "31245263936e7ac49b190ac29408ec61c4f42332751cd5e625f27fc9de54bedf",
+    "preparation": "Lossless crop only; coordinates in source raster",
+    "crop": [
+      420,
+      420,
+      795,
+      735
+    ],
+    "local_source": "outputs/sprint-1c-b2/dev_down_flags-1.png",
+    "source_sha256": "5235a29551f12e12848461a3a22a411f40e9d9229a6c76b2a61877039ec2c0ae",
+    "rights": "Original FluteOMR exercise; no third-party score. Generated raster output, not MuseScore code or font file.",
+    "split": "development",
+    "review": "source_authored_not_human_validated"
+  },
+  {
+    "image": "dev_eighth_beams-300.png",
+    "sha256": "719d8e265c9617a26688cbdaa88857a1f5920ed5d6989e451a9feb598901d8b3",
+    "size": [
+      315,
+      210
+    ],
+    "dpi": 300,
+    "renderer": "MuseScore Studio 4.7.4",
+    "music_font": "Not recorded in original render; renderer default",
+    "reference": "dev_eighth_beams.musicxml",
+    "reference_sha256": "7713c0c44749def23cea8dfdcd804496d16afc5ddb96b7f10c736a81959ba462",
+    "preparation": "Lossless crop only; coordinates in source raster",
+    "crop": [
+      195,
+      0,
+      510,
+      210
+    ],
+    "local_source": "outputs/sprint-1c-b/dev_eighth_beams-staff.png",
+    "source_sha256": "f5d8e3133932584f5a37466611f7d97334f3bc50d006c89423bcebc3fa8b12a5",
+    "rights": "Original FluteOMR exercise; no third-party score. Generated raster output, not MuseScore code or font file.",
+    "split": "development",
+    "review": "source_authored_not_human_validated"
+  }
+]

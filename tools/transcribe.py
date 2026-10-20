@@ -8,6 +8,7 @@ from pathlib import Path
 from PIL import ImageDraw
 
 from fluteomr.image_io import load_image
+from fluteomr.music import Instrument
 from fluteomr.musicxml import to_musicxml
 from fluteomr.staff_detection import detect_staffs
 from fluteomr.transcription import transcribe_measures, transcribe_one_measure
@@ -44,6 +45,16 @@ def main() -> None:
     parser.add_argument("--debug", type=Path, help="PNG de diagnóstico, novo arquivo")
     parser.add_argument("--output", type=Path, required=True, help="MusicXML novo")
     parser.add_argument("--part-name", help="Nome fornecido pelo usuário")
+    parser.add_argument(
+        "--instrument",
+        choices=("flute",),
+        help="Instrumento configurado pelo usuário, nunca inferido da imagem",
+    )
+    parser.add_argument(
+        "--native-heads",
+        action="store_true",
+        help="desativar normalização local de cabeças pequenas para comparação",
+    )
     args = parser.parse_args()
     if args.output.exists():
         parser.error("a saída já existe; escolha um arquivo novo")
@@ -59,6 +70,8 @@ def main() -> None:
                 content_left=args.measure_left,
                 content_right=args.measure_right,
                 part_name=args.part_name,
+                instrument=Instrument.flute() if args.instrument else None,
+                normalize_heads=not args.native_heads,
             )
             if args.auto_bars
             else None
@@ -71,6 +84,8 @@ def main() -> None:
                 measure_left=args.measure_left,
                 measure_right=args.measure_right,
                 part_name=args.part_name,
+                instrument=Instrument.flute() if args.instrument else None,
+                normalize_heads=not args.native_heads,
             )
         )
     except (OSError, ValueError) as exc:

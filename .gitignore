@@ -4,6 +4,7 @@ venv/
 .tools/
 .agents/
 .codex/
+.serena/
 .aws/
 .gh/
 

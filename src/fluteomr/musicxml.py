@@ -1,4 +1,4 @@
-"""Serialização mínima e estrita de um compasso melódico em MusicXML."""
+"""Serialização mínima e estrita de compassos melódicos em MusicXML."""
 
 from xml.etree import ElementTree as ET
 
@@ -27,6 +27,19 @@ def to_musicxml(score: MusicScore) -> bytes:
     for part in score.parts:
         listed = ET.SubElement(part_list, "score-part", id=part.id)
         ET.SubElement(listed, "part-name").text = part.name
+        if part.instrument is not None:
+            instrument_id = f"{part.id}-I1"
+            instrument = ET.SubElement(listed, "score-instrument", id=instrument_id)
+            ET.SubElement(instrument, "instrument-name").text = part.instrument.name
+            if part.instrument.sound is not None:
+                ET.SubElement(
+                    instrument, "instrument-sound"
+                ).text = part.instrument.sound
+            if part.instrument.midi_program is not None:
+                midi = ET.SubElement(listed, "midi-instrument", id=instrument_id)
+                ET.SubElement(midi, "midi-program").text = str(
+                    part.instrument.midi_program
+                )
     for part in score.parts:
         part_element = ET.SubElement(root, "part", id=part.id)
         for measure in part.measures:

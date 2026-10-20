@@ -546,9 +546,8 @@ o código, com 9/9 correspondências, **todos no mesmo renderizador MuseScore**.
 Isso não mede precisão em partituras reais nem generalização entre fontes.
 As imagens e os relatórios permanecem em `outputs/`. O teste reservado já foi
 aberto: uma futura avaliação cega exige novos exemplos.
-Uma exportação exploratória da mesma referência a 200 DPI encontrou três
-candidatos, dois inconclusivos; o compasso ficou `not_evaluated`. Essa escala
-ainda exige investigação.
+A falha histórica de 200 DPI foi investigada na retomada descrita abaixo;
+ela não demonstrava rearranjo horizontal pelo MuseScore.
 
 Para reproduzir esse resultado conhecido (não como novo teste cego), renderize
 `blind_down_flags` e `blind_long_beam` com o mesmo comando MuseScore acima e
@@ -566,6 +565,53 @@ flatpak run --env=QT_QPA_PLATFORM=offscreen org.musescore.MuseScore \
 O segundo comando exige antes um MusicXML previsto gerado por
 `tools.transcribe`; a reexportação do MSCZ permite comparar eventos e
 marcadores `<beam>` em vez de comparar texto XML bruto.
+
+### Retomada: amostragem de cabeças em 200 DPI
+
+A remoção de pauta agora respeita sua espessura inclusiva no raster. Sondas
+concorrentes da mesma cabeça priorizam uma haste observada, preservando a
+pontuação geométrica original. Cabeças vazadas exigem uma cavidade fechada
+antes da supressão das linhas, para não confundir feixe e pauta com mínima.
+
+Na transcrição, pautas com espaçamento abaixo de 16 px usam uma ampliação
+**local** bilinear para 20 px/espaço para recuperar cabeças vazadas ausentes.
+Candidatos nativos válidos são preservados; cada cabeça recuperada precisa de
+cavidade e haste também na imagem original. As coordenadas voltam à imagem
+original; hastes e ritmo continuam examinando os pixels originais.
+`detect_noteheads(..., normalize=True)` oferece essa opção na API geométrica;
+`normalize_heads=False` ou `--native-heads` mantêm o caminho nativo para comparação.
+Não há escolha de escala baseada na referência ou no fechamento do compasso.
+
+Exercícios próprios rasterizados estão em `tests/data/music_lab/raster/`, com
+proveniência e hashes. São dados de **desenvolvimento**, não teste independente:
+
+```bash
+.venv/bin/python -m tools.evaluate_music \
+  --manifest tests/data/music_lab/resolution_manifest.json \
+  --images-dir tests/data/music_lab/raster
+.venv/bin/python -m tools.transcribe \
+  tests/data/music_lab/raster/dev_down_flags-200.png \
+  --clef treble --time 4/4 --measure-left 20 --measure-right 233 \
+  --instrument flute --output outputs/recognized-flute-200.musicxml
+```
+
+O caso `dev_down_flags` passou de três candidatos, dois inconclusivos, para
+4/4 eventos completos em 200 DPI, mantendo 4/4 em 300 DPI. O mesmo resultado
+foi conferido nas páginas integrais. Os casos antigos de desenvolvimento
+mantiveram 13/13 eventos e a validação previamente consultada, 6/6.
+A substituição integral dos candidatos por versões ampliadas piorou um feixe
+reduzido a 2/3 da escala. A recuperação seletiva corrigiu essa regressão: o
+exemplo tem 5/5 eventos nessa escala e em 80%. Isso ainda não demonstra suporte
+geral a 200 DPI, outras fontes ou imagens degradadas. Não há nova métrica de
+acurácia em partitura real sem referência humana validada.
+
+`--instrument flute` informa explicitamente flauta transversal em Dó ao MusicXML
+(programa MIDI MusicXML 74), sem transposição ou restrição de tessitura. O nome
+da parte não determina o instrumento. Feixes inconsistentes bloqueiam a saída.
+O avaliador também marca reposicionamento temporal (`backup`/`forward`),
+múltiplas vozes/pautas e ligaduras como `unsupported`, em vez de contá-los como
+acertos. Parsing XML, validação por esquema e equivalência musical permanecem
+verificações distintas. Consulte a decisão 0016.
 
 Garantido pelos testes sintéticos: dez casos positivos (deslocamento, espessuras
 1–4 px, espaçamentos 6–24 px, duas pautas, símbolos simples, interrupções curtas e

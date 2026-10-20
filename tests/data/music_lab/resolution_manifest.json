@@ -1,0 +1,47 @@
+{
+  "format_version": 1,
+  "examples": [
+    {
+      "id": "dev_down_flags_200",
+      "image": "dev_down_flags-200.png",
+      "reference": "dev_down_flags.musicxml",
+      "origin": "original_exercise_musescore_4.7.4_200dpi_crop",
+      "split": "development",
+      "reference_status": "source_authored",
+      "configured": {
+        "clef": "treble",
+        "time": "4/4",
+        "measure_left": 20,
+        "measure_right": 233
+      }
+    },
+    {
+      "id": "dev_down_flags_300",
+      "image": "dev_down_flags-300.png",
+      "reference": "dev_down_flags.musicxml",
+      "origin": "original_exercise_musescore_4.7.4_300dpi_crop",
+      "split": "development",
+      "reference_status": "source_authored",
+      "configured": {
+        "clef": "treble",
+        "time": "4/4",
+        "measure_left": 30,
+        "measure_right": 350
+      }
+    },
+    {
+      "id": "dev_eighth_beams_300",
+      "image": "dev_eighth_beams-300.png",
+      "reference": "dev_eighth_beams.musicxml",
+      "origin": "original_exercise_musescore_4.7.4_300dpi_crop",
+      "split": "development",
+      "reference_status": "source_authored",
+      "configured": {
+        "clef": "treble",
+        "time": "4/4",
+        "measure_left": 5,
+        "measure_right": 310
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 """Cabeças de nota em uma pauta horizontal limpa, sem motor OMR externo."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from math import ceil, floor
 
 from PIL import Image
@@ -40,8 +40,10 @@ def _ink_without_staff(image: Image.Image, staff: Staff, threshold: int) -> byte
     original = ink.copy()
     width = gray.width
     for line in staff.lines:
-        start = max(0, floor(line.y - line.thickness / 2))
-        end = min(gray.height - 1, ceil(line.y + line.thickness / 2))
+        # `thickness` conta linhas inclusivas do raster, não um raio contínuo.
+        # Arredondar a borda uma vez evita apagar 3 linhas para um traço de 1 px.
+        start = max(0, round(line.y - (line.thickness - 1) / 2))
+        end = min(gray.height - 1, start + line.thickness - 1)
         if start == 0 or end == gray.height - 1:
             continue
         for x in range(max(0, line.x_start), min(width - 1, line.x_end) + 1):
@@ -122,12 +124,58 @@ def _has_stem(
     return False
 
 
+def _encloses_hole(
+    gray: bytes,
+    width: int,
+    threshold: int,
+    x: int,
+    y: int,
+    rx: int,
+    ry: int,
+    spacing: float,
+) -> bool:
+    """Uma cabeça vazada tem branco encerrado; haste e feixe abertos não têm.
+
+    Usa a imagem anterior à supressão, ampliada no caminho normalizado, para
+    preservar o contorno nos cruzamentos da pauta.
+    A linha pode dividir o vazio em duas regiões; basta uma região central
+    fechada com área >= 4% do quadrado do espaçamento, sem pixels de borda.
+    """
+    visited: set[tuple[int, int]] = set()
+    for seed in ((x, y), (x, y - max(1, ry // 2)), (x, y + max(1, ry // 2))):
+        if seed in visited or gray[seed[1] * width + seed[0]] <= threshold:
+            continue
+        frontier = [seed]
+        visited.add(seed)
+        area = 0
+        open_boundary = False
+        while frontier:
+            px, py = frontier.pop()
+            area += 1
+            if px in (x - rx, x + rx) or py in (y - ry, y + ry):
+                open_boundary = True
+            for nx, ny in ((px - 1, py), (px + 1, py), (px, py - 1), (px, py + 1)):
+                if (
+                    x - rx <= nx <= x + rx
+                    and y - ry <= ny <= y + ry
+                    and (nx, ny) not in visited
+                    and gray[ny * width + nx] > threshold
+                ):
+                    visited.add((nx, ny))
+                    frontier.append((nx, ny))
+        if not open_boundary and area >= max(1, round(0.04 * spacing**2)):
+            return True
+    return False
+
+
 def detect_noteheads(
     image: Image.Image,
     staff: Staff,
     threshold: int,
     measure_left: int,
     measure_right: int,
+    *,
+    normalize: bool = False,
 ) -> tuple[NoteheadObservation, ...]:
     """Compara preenchimento central e anel, após suprimir as cinco linhas.
 
@@ -136,7 +184,12 @@ def detect_noteheads(
     """
     if not 0 <= measure_left < measure_right < image.width:
         raise ValueError("limites de compasso fora da imagem")
+    if normalize and staff.spacing < 16:
+        return _normalized_noteheads(
+            image, staff, threshold, measure_left, measure_right
+        )
     ink = _ink_without_staff(image, staff, threshold)
+    gray = normalize_image(image).convert("L").tobytes()
     spacing = staff.spacing
     rx = max(3, round(0.65 * spacing))
     ry = max(2, round(0.42 * spacing))
@@ -182,6 +235,10 @@ def detect_noteheads(
                 if match is None:
                     continue
                 visual_kind, score = match
+                if visual_kind == "hollow" and not _encloses_hole(
+                    gray, image.width, threshold, x, y, rx, ry, spacing
+                ):
+                    continue
                 stem = _has_stem(ink, image.width, image.height, x, y, rx, ry, spacing)
                 candidates.append(
                     NoteheadObservation(
@@ -197,13 +254,134 @@ def detect_noteheads(
     return _deduplicate_candidates(candidates, spacing)
 
 
+def _normalized_noteheads(
+    image: Image.Image,
+    staff: Staff,
+    threshold: int,
+    left: int,
+    right: int,
+) -> tuple[NoteheadObservation, ...]:
+    """Recupera anéis vazados em região local, preservando candidatos nativos.
+
+    A máscara fixa fica muito quantizada abaixo de 16 px/espaço. A interpolação
+    bilinear estabiliza anéis; não recria evidência que não exista. Ela também
+    pode criar falsas cabeças preenchidas junto a feixes. Por isso os candidatos
+    nativos são mantidos, e só anéis novos com cavidade e haste no raster original
+    são adicionados. Não se usa o fechamento rítmico para escolher candidatos.
+    """
+    spacing = staff.spacing
+    native = detect_noteheads(image, staff, threshold, left, right)
+    x0, y0 = (
+        max(0, floor(left - 2 * spacing)),
+        max(0, floor(staff.lines[0].y - 7 * spacing)),
+    )
+    x1, y1 = (
+        min(image.width, ceil(right + 2 * spacing) + 1),
+        min(image.height, ceil(staff.lines[-1].y + 7 * spacing) + 1),
+    )
+    crop = normalize_image(image).convert("L").crop((x0, y0, x1, y1))
+    scale = 20 / spacing
+    width, height = round(crop.width * scale), round(crop.height * scale)
+    enlarged = crop.resize((width, height), Image.Resampling.BILINEAR)
+    sx, sy = width / crop.width, height / crop.height
+    lines = tuple(
+        replace(
+            line,
+            x_start=max(0, round((line.x_start - x0) * sx)),
+            x_end=min(width - 1, round((line.x_end - x0) * sx)),
+            y=(line.y - y0) * sy,
+            thickness=max(1, round(line.thickness * sy)),
+        )
+        for line in staff.lines
+    )
+    local_staff = Staff(
+        lines,
+        spacing * sy,
+        Region(lines[0].x_start, lines[0].y, lines[0].x_end, lines[-1].y),
+    )
+    heads = detect_noteheads(
+        enlarged,
+        local_staff,
+        threshold,
+        round((left - x0) * sx),
+        min(width - 1, round((right - x0) * sx)),
+    )
+    mapped = tuple(
+        replace(
+            head,
+            center_x=round(head.center_x / sx + x0),
+            center_y=round(head.center_y / sy + y0),
+            region=Region(
+                max(0, round(head.region.left / sx + x0)),
+                max(0, round(head.region.top / sy + y0)),
+                min(image.width - 1, round(head.region.right / sx + x0)),
+                min(image.height - 1, round(head.region.bottom / sy + y0)),
+            ),
+            diagnostics=(*head.diagnostics, "staff_space_normalized"),
+        )
+        for head in heads
+        if head.visual_kind == "hollow"
+    )
+    gray = normalize_image(image).convert("L").tobytes()
+    ink = _ink_without_staff(image, staff, threshold)
+    recovered = []
+    for head in mapped:
+        # Reaplica a sonda nativa: dividir uma caixa arredondada podia perder
+        # outra linha de pixels no contorno inferior de uma mínima pequena.
+        rx = max(3, round(0.65 * spacing))
+        ry = max(2, round(0.42 * spacing))
+        if (
+            head.center_x - rx < 0
+            or head.center_x + rx >= image.width
+            or head.center_y - ry < 0
+            or head.center_y + ry >= image.height
+        ):
+            continue
+        if not _encloses_hole(
+            gray,
+            image.width,
+            threshold,
+            head.center_x,
+            head.center_y,
+            rx,
+            ry,
+            spacing,
+        ) or not _has_stem(
+            ink,
+            image.width,
+            image.height,
+            head.center_x,
+            head.center_y,
+            rx,
+            ry,
+            spacing,
+        ):
+            continue
+        if any(
+            abs(head.center_x - existing.center_x) < 0.9 * spacing
+            and abs(head.center_y - existing.center_y) < 1.1 * spacing
+            for existing in (*native, *recovered)
+        ):
+            continue
+        recovered.append(
+            replace(
+                head,
+                stem_present=True,
+                diagnostics=tuple(
+                    d for d in head.diagnostics if d != "stem_not_confirmed"
+                ),
+            )
+        )
+    return tuple(sorted((*native, *recovered), key=lambda h: h.center_x))
+
+
 def _deduplicate_candidates(
     candidates: list[NoteheadObservation], spacing: float
 ) -> tuple[NoteheadObservation, ...]:
     """Une sondas da mesma cabeça; mantém eventos próximos em `x` e grau distinto."""
     chosen = []
     for candidate in sorted(
-        candidates, key=lambda c: (c.shape_score, c.stem_present), reverse=True
+        candidates, key=lambda c: (c.stem_present, c.shape_score), reverse=True
     ):
         if any(
             abs(candidate.center_x - previous.center_x) < 0.9 * spacing

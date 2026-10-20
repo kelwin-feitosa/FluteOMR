@@ -132,6 +132,68 @@ def test_fractional_duration_and_invalid_xml():
         evaluate_music(b"<broken", _score([[("E", 4, "quarter")]]))
 
 
+@pytest.mark.parametrize("cursor", ("backup", "forward"))
+def test_time_cursor_reference_is_not_flattened_into_a_perfect_melody(cursor):
+    root = ET.fromstring(_xml([[("E", 4, 2, None), ("G", 4, 2, None)]]))
+    measure = root.find("part/measure")
+    movement = ET.Element(cursor)
+    ET.SubElement(movement, "duration").text = "2"
+    measure.insert(2, movement)
+    prediction = _score([[("E", 4, "quarter"), ("G", 4, "quarter")]])
+    report = evaluate_music(ET.tostring(root), prediction)
+    assert report["status"] == "partial"
+    assert report["unsupported"]["time_cursor"] == 1
+    assert report["matches"] == report["aligned_events"] == 0
+    assert report["skipped_reference_events"] == 2
+    assert report["full_match_fraction"] == "not_evaluated"
+    assert report["reference_xml_schema_validated"] is False
+
+
+@pytest.mark.parametrize("field", ("voice", "staff"))
+def test_multiple_voices_or_staffs_are_not_scored_as_one_voice(field):
+    root = ET.fromstring(_xml([[("E", 4, 2, None), ("G", 4, 2, None)]]))
+    for index, note in enumerate(root.findall("part/measure/note"), 1):
+        ET.SubElement(note, field).text = str(index)
+    report = evaluate_music(
+        ET.tostring(root), _score([[("E", 4, "quarter"), ("G", 4, "quarter")]])
+    )
+    assert report["unsupported"]["multiple_voices_or_staffs"] == 1
+    assert report["matches"] == 0
+
+
+def test_unrepresented_tie_is_explicit_instead_of_counted_as_a_match():
+    root = ET.fromstring(_xml([[("E", 4, 2, None)], [("E", 4, 2, None)]]))
+    for note, kind in zip(
+        root.findall("part/measure/note"), ("start", "stop"), strict=True
+    ):
+        ET.SubElement(note, "tie", type=kind)
+    report = evaluate_music(
+        ET.tostring(root), _score([[("E", 4, "quarter")], [("E", 4, "quarter")]])
+    )
+    assert report["unsupported"]["tie"] == 2
+    assert report["matches"] == 0
+
+
+@pytest.mark.parametrize(
+    "events", ([("DE", 4, 2, None)], [("E", 4, 0, None)], [("E", 4, -1, None)])
+)
+def test_invalid_reference_step_or_duration_is_rejected(events):
+    with pytest.raises(ValueError):
+        evaluate_music(_xml([events]), _score([[("E", 4, "quarter")]]))
+
+
+def test_missing_unsupported_events_still_have_explicit_denominators():
+    reference = _xml([[("E", 4, 2, None)], [(None, None, 2, None)]])
+    report = evaluate_music(reference, _score([[("E", 4, "quarter")]]))
+    assert report["measure_errors"]["omissions"] == 1
+    assert report["omissions"] == 0  # A pausa não pertence ao subconjunto suportado.
+    assert report["skipped_reference_events"] == 1
+    assert (
+        report["reference_events"]
+        == report["matches"] + report["skipped_reference_events"]
+    )
+
+
 def test_alignment_reports_full_pitch_duration_and_coverage_separately():
     reference = _xml([[("E", 4, 2, None), ("F", 4, 1, None)]])
     score = _score([[("E", 5, "quarter"), ("F", 4, "quarter")]])
@@ -196,6 +258,32 @@ def test_lab_transcribes_before_reading_source_authored_reference(tmp_path):
     assert row["xml_export"] == "well_formed_not_schema_validated"
     manifest.write_text(manifest.read_text().replace("source_authored", "draft"))
     assert evaluate_manifest(manifest, images)[0]["evaluation"] == "not_evaluated"
+
+
+@pytest.mark.parametrize("configured", ({"clef": "bass"}, {"time": "3/4"}))
+def test_lab_rejects_configuration_it_cannot_apply(tmp_path, configured):
+    # Sem imagem: a configuração deve falhar antes de iniciar a inferência.
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "format_version": 1,
+                "examples": [
+                    {
+                        "id": "unsupported_configuration",
+                        "image": "missing.png",
+                        "reference": "missing.musicxml",
+                        "origin": "controlled_test",
+                        "split": "development",
+                        "reference_status": "source_authored",
+                        "configured": configured,
+                    }
+                ],
+            }
+        )
+    )
+    with pytest.raises(ValueError, match="4/4"):
+        evaluate_manifest(manifest, tmp_path)
 
 
 def _candidate(x, y, spacing, score=0.9):

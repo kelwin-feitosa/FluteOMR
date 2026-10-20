@@ -24,6 +24,12 @@ def evaluate_manifest(manifest_path: Path, images_dir: Path) -> list[dict]:
             raise ValueError("split inválido")
         if example["reference_status"] not in ("source_authored", "validated", "draft"):
             raise ValueError("estado da referência inválido")
+        configured = example["configured"]
+        if (
+            configured.get("clef", "treble") != "treble"
+            or configured.get("time", "4/4") != "4/4"
+        ):
+            raise ValueError("laboratório atual exige clave de sol e fórmula 4/4")
         image_name = Path(example["image"])
         reference_name = Path(example["reference"])
         if image_name.name != str(image_name) or reference_name.name != str(
@@ -34,8 +40,8 @@ def evaluate_manifest(manifest_path: Path, images_dir: Path) -> list[dict]:
         started = perf_counter()
         score = transcribe_one_measure(
             load_image(image_path),
-            measure_left=example["configured"]["measure_left"],
-            measure_right=example["configured"]["measure_right"],
+            measure_left=configured["measure_left"],
+            measure_right=configured["measure_right"],
         )
         elapsed = round(perf_counter() - started, 4)
         row = {

@@ -19,6 +19,7 @@ class Event:
 class MeasureEvents:
     number: int
     events: tuple[Event, ...]
+    unsupported: str | None = None
 
 
 def parse_reference(xml: bytes) -> tuple[tuple[MeasureEvents, ...], ...]:
@@ -36,6 +37,18 @@ def parse_reference(xml: bytes) -> tuple[tuple[MeasureEvents, ...], ...]:
                 divisions = int(new_divisions)
             if not divisions or divisions < 1:
                 raise ValueError("divisions ausente ou inválido")
+            # A ordem XML não é a ordem temporal quando o cursor é reposicionado.
+            # Não achatar vozes/pautas simultâneas como uma melodia monofônica.
+            voices = {note.findtext("voice", "1") for note in measure.findall("note")}
+            staffs = {note.findtext("staff", "1") for note in measure.findall("note")}
+            measure_unsupported = None
+            if (
+                measure.find("backup") is not None
+                or measure.find("forward") is not None
+            ):
+                measure_unsupported = "time_cursor"
+            elif len(voices) > 1 or len(staffs) > 1:
+                measure_unsupported = "multiple_voices_or_staffs"
             events = []
             for note in measure.findall("note"):
                 raw_duration = note.findtext("duration")
@@ -44,6 +57,8 @@ def parse_reference(xml: bytes) -> tuple[tuple[MeasureEvents, ...], ...]:
                     if raw_duration is not None
                     else None
                 )
+                if duration is not None and duration <= 0:
+                    raise ValueError("duração de referência deve ser positiva")
                 if note.find("rest") is not None:
                     events.append(Event(None, None, duration, "rest"))
                     continue
@@ -58,18 +73,24 @@ def parse_reference(xml: bytes) -> tuple[tuple[MeasureEvents, ...], ...]:
                 octave = pitch.findtext("octave")
                 if (
                     step is None
-                    or step not in "CDEFGAB"
+                    or step not in tuple("CDEFGAB")
                     or octave is None
                     or duration is None
                 ):
                     raise ValueError("nota de referência incompleta")
                 alter = pitch.findtext("alter")
+                unsupported = "chromatic_alteration" if alter is not None else None
+                if (
+                    note.find("tie") is not None
+                    or note.find("notations/tied") is not None
+                ):
+                    unsupported = "tie"
                 events.append(
                     Event(
                         step,
                         int(octave),
                         duration,
-                        "chromatic_alteration" if alter is not None else None,
+                        unsupported,
                     )
                 )
             number = measure.get("number")
@@ -77,7 +98,9 @@ def parse_reference(xml: bytes) -> tuple[tuple[MeasureEvents, ...], ...]:
                 raise ValueError("número de compasso ausente ou não numérico")
             if any(previous.number == int(number) for previous in measures):
                 raise ValueError("número de compasso repetido")
-            measures.append(MeasureEvents(int(number), tuple(events)))
+            measures.append(
+                MeasureEvents(int(number), tuple(events), measure_unsupported)
+            )
         parts.append(tuple(measures))
     if not parts:
         raise ValueError("referência sem partes")
@@ -182,6 +205,10 @@ def evaluate_music(reference_xml: bytes, prediction: MusicScore) -> dict:
     skipped_reference_events = skipped_predicted_events = 0
     for part in (*reference, *predicted):
         for measure in part:
+            if measure.unsupported:
+                unsupported[measure.unsupported] = (
+                    unsupported.get(measure.unsupported, 0) + 1
+                )
             for event in measure.events:
                 if event.unsupported:
                     unsupported[event.unsupported] = (
@@ -191,13 +218,13 @@ def evaluate_music(reference_xml: bytes, prediction: MusicScore) -> dict:
     predicted_count = sum(len(m.events) for p in predicted for m in p)
     for part_index in range(max(len(reference), len(predicted))):
         truth_part = {
-            measure.number: measure.events
+            measure.number: measure
             for measure in (
                 reference[part_index] if part_index < len(reference) else ()
             )
         }
         found_part = {
-            measure.number: measure.events
+            measure.number: measure
             for measure in (
                 predicted[part_index] if part_index < len(predicted) else ()
             )
@@ -210,17 +237,30 @@ def evaluate_music(reference_xml: bytes, prediction: MusicScore) -> dict:
             if number not in truth_part:
                 measure_errors["insertions"] += 1
                 totals["insertions"] += sum(
-                    not event.unsupported for event in found_part[number]
+                    not event.unsupported for event in found_part[number].events
+                )
+                skipped_predicted_events += sum(
+                    bool(event.unsupported) for event in found_part[number].events
                 )
                 continue
             if number not in found_part:
                 measure_errors["omissions"] += 1
-                totals["omissions"] += sum(
-                    not event.unsupported for event in truth_part[number]
-                )
+                missing = truth_part[number]
+                if missing.unsupported:
+                    skipped_reference_events += len(missing.events)
+                else:
+                    totals["omissions"] += sum(
+                        not event.unsupported for event in missing.events
+                    )
+                    skipped_reference_events += sum(
+                        bool(event.unsupported) for event in missing.events
+                    )
                 continue
-            truth, found = truth_part[number], found_part[number]
-            if any(event.unsupported for event in (*truth, *found)):
+            truth_measure, found_measure = truth_part[number], found_part[number]
+            truth, found = truth_measure.events, found_measure.events
+            if truth_measure.unsupported or any(
+                event.unsupported for event in (*truth, *found)
+            ):
                 skipped_reference_events += len(truth)
                 skipped_predicted_events += len(found)
                 continue
@@ -229,6 +269,7 @@ def evaluate_music(reference_xml: bytes, prediction: MusicScore) -> dict:
     return {
         "status": "partial" if unsupported else "evaluated",
         "reference_xml_parsed": True,
+        "reference_xml_schema_validated": False,
         "notation_graphics": "not_evaluated",
         "reference_parts": len(reference),
         "predicted_parts": len(predicted),

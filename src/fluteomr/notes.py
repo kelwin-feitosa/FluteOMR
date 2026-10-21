@@ -144,9 +144,15 @@ def _encloses_hole(
 
     Usa a imagem anterior à supressão, ampliada no caminho normalizado, para
     preservar o contorno nos cruzamentos da pauta.
+    A máscara elíptica amostra tinta, mas não delimita a cavidade: um anel
+    inclinado pode ultrapassar seu raio vertical. A busca usa contexto quadrado
+    com o raio maior da máscara, sem alterar os critérios de forma ou de haste.
     A linha pode dividir o vazio em duas regiões; basta uma região central
     fechada com área >= 4% do quadrado do espaçamento, sem pixels de borda.
     """
+    radius_y = max(rx, ry)
+    left, right = max(0, x - rx), min(width - 1, x + rx)
+    top, bottom = max(0, y - radius_y), min(len(gray) // width - 1, y + radius_y)
     visited: set[tuple[int, int]] = set()
     for seed in ((x, y), (x, y - max(1, ry // 2)), (x, y + max(1, ry // 2))):
         if seed in visited or gray[seed[1] * width + seed[0]] <= threshold:
@@ -158,12 +164,12 @@ def _encloses_hole(
         while frontier:
             px, py = frontier.pop()
             area += 1
-            if px in (x - rx, x + rx) or py in (y - ry, y + ry):
+            if px in (left, right) or py in (top, bottom):
                 open_boundary = True
             for nx, ny in ((px - 1, py), (px + 1, py), (px, py - 1), (px, py + 1)):
                 if (
-                    x - rx <= nx <= x + rx
-                    and y - ry <= ny <= y + ry
+                    left <= nx <= right
+                    and top <= ny <= bottom
                     and (nx, ny) not in visited
                     and gray[ny * width + nx] > threshold
                 ):

@@ -691,6 +691,20 @@ corretos em cada resolução. A validação congelada e os exemplos externos
 reservados não foram usados nessa mudança. Regressão reproduzível:
 `.venv/bin/python -m pytest -q tests/test_barline_endpoints.py`.
 
+Na Sprint 1F, a busca de cavidades passou a usar contexto vertical até o maior
+raio da máscara, separado da elipse que amostra tinta. Antes, cavidades fechadas
+de mínimas inclinadas ultrapassavam a caixa baixa e eram consideradas abertas.
+Os critérios de forma, contorno fechado e haste foram mantidos, sem mudar a
+supressão de linhas ou a deduplicação. Nas mesmas variantes de desenvolvimento,
+150 DPI passou de 25/30 para 30/30 eventos completos, recuperando cinco mínimas,
+com 8/8 compassos corretos e quatro exportações MusicXML desbloqueadas. Em
+200/300 DPI, foram preservados 30/30 eventos e 8/8 compassos por resolução.
+São duas obras próprias renderizadas pelo MuseScore em duas fontes, sem
+validação de precisão geral em partituras reais. A validação congelada e os
+exemplos externos reservados não foram acessados. Regressão, incluindo contorno
+aberto negativo e transcrição do recorte existente com/sem normalização:
+`.venv/bin/python -m pytest -q tests/test_hollow_head_cavity.py`.
+
 Garantido pelos testes sintéticos: dez casos positivos (deslocamento, espessuras
 1–4 px, espaçamentos 6–24 px, duas pautas, símbolos simples, interrupções curtas e
 ruído de 0,5%) retornam a contagem correta, cinco linhas ordenadas e erro máximo

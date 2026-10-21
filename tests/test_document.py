@@ -155,3 +155,32 @@ def test_cli_preserves_partial_report_when_export_is_blocked(tmp_path):
         json.loads(report.read_text())["xml_export"] == "blocked_by_prediction_issues"
     )
     assert not output.exists()
+
+
+def test_inconclusive_boundary_blocks_even_when_four_beats_would_close():
+    from fluteomr.staff_detection import detect_staffs
+    from fluteomr.transcription import transcribe_staff_measures
+
+    image = Image.new("RGB", (400, 180), "white")
+    draw = ImageDraw.Draw(image)
+    for y in (40, 56, 72, 88, 104):
+        draw.line((10, y, 390, y), fill="black", width=2)
+    for x in (60, 130, 250, 320):
+        draw.ellipse((x - 10, 97, x + 10, 111), fill="black")
+        draw.line((x + 9, 104, x + 9, 50), fill="black", width=2)
+    draw.line((190, 46, 190, 104), fill="black", width=2)
+    detection = detect_staffs(image)
+    result = transcribe_staff_measures(
+        image,
+        detection.staffs[0],
+        detection.threshold,
+        content_left=30,
+        content_right=360,
+    )
+    assert len(result.score.parts[0].measures[0].notes) == 4
+    assert any(bar.status == "inconclusive" for bar in result.barlines)
+    assert any(
+        issue.startswith("inconclusive_barline:") for issue in result.score.issues()
+    )
+    with pytest.raises(ValueError, match="incompleta"):
+        to_musicxml(result.score)

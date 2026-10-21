@@ -7,6 +7,7 @@ from fluteomr.music import MusicScore
 
 def to_musicxml(score: MusicScore) -> bytes:
     """Recusa saída final quando faltam eventos essenciais ou a duração não fecha."""
+    _validate_supported_model(score)
     issues = score.issues()
     if issues:
         raise ValueError(f"transcrição incompleta: {', '.join(issues)}")
@@ -73,3 +74,49 @@ def to_musicxml(score: MusicScore) -> bytes:
         b'"http://www.musicxml.org/dtds/partwise.dtd">',
         1,
     )
+
+
+def _validate_supported_model(score: MusicScore) -> None:
+    """Tipagem estática não valida dados construídos por consumidores da API.
+
+    Recusa valores que o serializador não sabe preservar, sem convertê-los em
+    outro símbolo. Não é validação completa pelo esquema MusicXML.
+    """
+    from re import fullmatch
+
+    ids: set[str] = set()
+    for part in score.parts:
+        if (
+            not isinstance(part.id, str)
+            or not fullmatch(r"[A-Za-z_][A-Za-z0-9_.-]*", part.id)
+            or part.id in ids
+        ):
+            raise ValueError("identificador de parte inválido ou repetido")
+        ids.add(part.id)
+        if part.clef.kind != "treble":
+            raise ValueError("clave não suportada pelo exportador")
+        numbers = [measure.number for measure in part.measures]
+        if (
+            not numbers
+            or any(type(n) is not int or n < 1 for n in numbers)
+            or numbers != sorted(set(numbers))
+        ):
+            raise ValueError("compassos ausentes, repetidos ou fora de ordem")
+        for measure in part.measures:
+            time = measure.time_signature
+            if any(type(v) is not int or v < 1 for v in (time.beats, time.beat_type)):
+                raise ValueError("fórmula de compasso inválida")
+            for note in measure.notes:
+                if note.pitch is not None and (
+                    note.pitch.step not in ("C", "D", "E", "F", "G", "A", "B")
+                    or type(note.pitch.octave) is not int
+                ):
+                    raise ValueError("altura escrita inválida ou não suportada")
+                if note.duration is not None and note.duration.kind not in (
+                    "eighth",
+                    "quarter",
+                    "half",
+                ):
+                    raise ValueError("duração não suportada pelo exportador")
+                if note.beam not in (None, "begin", "continue", "end"):
+                    raise ValueError("feixe não suportado pelo exportador")

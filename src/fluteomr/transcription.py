@@ -220,7 +220,14 @@ def transcribe_staff_measures(
         instrument=instrument,
     )
     return TranscriptionResult(
-        MusicScore((part,)),
+        MusicScore(
+            (part,),
+            tuple(
+                f"inconclusive_barline:{bar.id}"
+                for bar in bars
+                if bar.status == "inconclusive"
+            ),
+        ),
         heads,
         stems,
         bars,

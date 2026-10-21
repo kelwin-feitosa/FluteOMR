@@ -755,7 +755,8 @@ MuseScore. O pacote novo reaproveita o manifesto do laboratório e mantém
 predições, candidato e referência humana separados. Para o trecho real de
 Twinkle já disponível, o pacote preparado nesta execução está em
 `outputs/sprint-1g/twinkle-human-review/`: sete notas candidatas em dois compassos,
-**ainda draft**. Confira o original e o recorte antes de consultar predições.
+**ainda draft**. Twinkle já participou do desenvolvimento; revisão humana não
+o transformará em teste cego. Confira o original e o recorte antes de consultar predições.
 
 Para criar outro pacote novo (o diretório não pode existir):
 
@@ -775,7 +776,7 @@ flatpak run org.musescore.MuseScore outputs/minha-revisao/reference.musicxml
 `reference.musicxml` manualmente dentro do pacote antes de confirmar. Revise
 **todos** os eventos, compassos e símbolos, inclusive os não suportados. Se
 corrigir no MuseScore, exporte o MusicXML revisado para `reference.musicxml`;
-salvar apenas MSCZ não atualiza a referência. A prévia `candidate-preview.mscz`
+salvar apenas MSCZ não atualiza a referência. Use MusicXML sem compressão, não MXL. A prévia `candidate-preview.mscz`
 não comprova revisão e não é a saída automática do reconhecedor.
 
 Somente depois de revisar, execute você mesmo (não foi executado nos dados reais):
@@ -826,3 +827,14 @@ Testes reproduzíveis com duas pautas próprias e oito eventos conhecidos:
 `.venv/bin/python -m pytest -q tests/test_document.py`.
 A CLI legada `tools.transcribe` e `python -m fluteomr` continuam disponíveis.
 Decisão: `docs/decisions/0019-provisional-solo-page-transcription.md`.
+
+A exportação também recusa valores que não consegue preservar (claves fora de
+sol, durações/feixes sem suporte, alturas inválidas, IDs de parte repetidos e
+numeração de compassos inconsistente). Uma barra inconclusiva permanece nos
+diagnósticos e bloqueia a saída mesmo se a soma for quatro tempos. Isso não
+é validação pelo XSD completo do MusicXML. No round-trip local com MuseScore
+Studio 4.7.5 foram preservados dez eventos, dois compassos, feixes e MIDI 74 em
+uma página própria de integração; isso verifica interoperabilidade, não precisão
+óptica independente. Prioridade seguinte: revisar a referência real preparada,
+anotar outros trechos externos de desenvolvimento e investigar os erros da
+página completa (incluindo barras finais/duplas), sem acessar o conjunto reservado.

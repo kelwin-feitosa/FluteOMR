@@ -36,7 +36,8 @@ pauta menos 0,6 espaço, para não tratar sua borda como barra interna.
 O JSON preserva resultados parciais e falhas por pauta, sem afirmar correção.
 `ready_not_validated` significa apenas ausência de problemas conhecidos. Qualquer
 pauta incompleta/falha bloqueia a exportação final; não se inventam eventos ou
-compassos para preencher lacunas. Código de saída 1 preserva JSON parcial;
+compassos para preencher lacunas. Barras inconclusivas também bloqueiam a saída, mesmo quando a soma rítmica fecha.
+Código de saída 1 preserva JSON parcial;
 problemas de entrada/arquivo retornam 2. Arquivos existentes não são sobrescritos.
 
 Testes com duas pautas de raster próprio verificam oito eventos, coordenadas,

@@ -164,3 +164,14 @@ def test_explicitly_reviewed_fixture_uses_existing_musical_evaluator(tmp_path):
     confirm_review(manifest, reviewer="automated-test-fixture", confirm_reviewed=True)
     row = evaluate_manifest(manifest, manifest.parent)[0]
     assert row["evaluation"]["matches"] == row["evaluation"]["reference_events"] == 4
+
+
+def test_invalid_candidate_xml_is_reported_without_promoting_draft(tmp_path):
+    _, manifest = _bundle(tmp_path)
+    row = json.loads(manifest.read_text())["examples"][0]
+    (manifest.parent / row["reference"]).write_text("<score-partwise>")
+    with pytest.raises(ValueError, match="MusicXML"):
+        verify_review(manifest, row)
+    assert (
+        json.loads(manifest.read_text())["examples"][0]["reference_status"] == "draft"
+    )

@@ -7,6 +7,7 @@ import shutil
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
+from xml.etree import ElementTree as ET
 
 from PIL import Image
 
@@ -39,7 +40,10 @@ def _write(path: Path, data: dict) -> None:
 
 
 def _check_xml(path: Path, measures: list[int]) -> None:
-    parts = parse_reference(path.read_bytes())
+    try:
+        parts = parse_reference(path.read_bytes())
+    except ET.ParseError as exc:
+        raise ValueError(f"MusicXML inválido: {exc}") from exc
     if len(parts) != 1 or [m.number for m in parts[0]] != measures:
         raise ValueError("referência não corresponde aos compassos/parte do recorte")
     if not any(m.events for m in parts[0]):

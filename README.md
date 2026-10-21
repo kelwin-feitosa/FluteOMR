@@ -674,6 +674,23 @@ validação, em cada resolução. São 132 instâncias renderizadas de 22 evento
 musicais em três exercícios; não 132 notas independentes nem precisão em
 partituras reais. Detalhes, limitações e protocolo estão na decisão 0017.
 
+Na Sprint 1E, barras convencionais passaram a exigir suporte de tinta junto às
+duas linhas externas, em faixas internas de 1/4 do espaçamento, excluída a
+espessura horizontal. Cobertura vertical total alta sem esse suporte produz
+`inconclusive` com `unanchored_staff_endpoint`, sem dividir o compasso. Isso
+independe de a cabeça ligada à haste ter sido reconhecida. Barras com uma
+extremidade danificada também podem ficar inconclusivas; pequenas falhas no
+interior continuam toleradas. Não há recuperação de notas nessa correção.
+Nas mesmas quatro variantes de desenvolvimento a 150 DPI (duas obras), barras
+falsas deixaram de gerar quatro compassos extras: 12 → 8 compassos, com oito
+esperados. Correspondências musicais completas passaram de 23/30 para 25/30,
+mantendo as mesmas 25 cabeças e cinco omissões reais; apenas três dos oito
+compassos ficaram musicalmente completos, e as quatro exportações permanecem
+bloqueadas. Em 200 e 300 DPI, foram preservados 30/30 eventos e 8/8 compassos
+corretos em cada resolução. A validação congelada e os exemplos externos
+reservados não foram usados nessa mudança. Regressão reproduzível:
+`.venv/bin/python -m pytest -q tests/test_barline_endpoints.py`.
+
 Garantido pelos testes sintéticos: dez casos positivos (deslocamento, espessuras
 1–4 px, espaçamentos 6–24 px, duas pautas, símbolos simples, interrupções curtas e
 ruído de 0,5%) retornam a contagem correta, cinco linhas ordenadas e erro máximo

@@ -38,5 +38,25 @@
     "reference_scope": "First measure only; own source MusicXML authored before inference",
     "split": "development",
     "rights": "Original FluteOMR exercise. Generated raster only; no third-party score or font redistributed."
+  },
+  {
+    "image": "barline-and-unrecognized-head-150.png",
+    "sha256": "40d6491c2f574fa98dc3e4f645126046d7ecb9eb26808f1dfccc334b621a6da5",
+    "source_image": "outputs/sprint-1d/rendered/dev_register-Leland-150-1.png",
+    "source_sha256": "97b13c61564a4bfd6afafad802715780666ba7d2645e7f7a7f0b24850d3c0741",
+    "crop": [
+      510,
+      75,
+      930,
+      155
+    ],
+    "dpi": 150,
+    "font": "Leland",
+    "renderer": "MuseScore4.7.5",
+    "reference": "dev_register.musicxml",
+    "reference_sha256": "65fdc00f801c22eb8df2968635f5b9a9f53725bfd5cd8dfe061b3e682ee212f6",
+    "reference_scope": "Internal barline and second-measure excerpt; original head omission exposes stem/barline ambiguity. Not a complete musical benchmark.",
+    "split": "development",
+    "rights": "Original FluteOMR exercise. Generated raster only; no third-party score or font redistributed."
   }
 ]

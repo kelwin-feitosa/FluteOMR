@@ -1,6 +1,7 @@
 """Relações geométricas mínimas entre cabeças, hastes e barras de compasso."""
 
 from dataclasses import dataclass
+from math import ceil, floor
 
 from PIL import Image
 
@@ -89,6 +90,8 @@ def detect_barlines(
 
     As linhas horizontais são excluídas da cobertura. Uma coluna perto de uma
     cabeça não é aceita como barra, mesmo se cruzar toda a altura da pauta.
+    A cobertura global não basta: o traço deve alcançar ambas as bordas.
+    Uma extremidade sem suporte mantém o candidato inconclusivo.
     """
     if not 0 <= left < right < image.width:
         raise ValueError("limites fora da imagem")
@@ -107,6 +110,18 @@ def detect_barlines(
     rows = [y for y in range(top, bottom + 1) if y not in excluded]
     if len(rows) < 5:
         return ()
+    # Sondar logo após a tinta horizontal, sem a margem extra usada na
+    # cobertura global. Uma haste de 3,5 espaços pode cobrir quase toda a
+    # pauta mesmo sem alcançar uma das linhas externas.
+    edge_depth = max(1, round(0.25 * staff.spacing))
+    first = staff.lines[0]
+    last = staff.lines[-1]
+    inner_top = floor(first.y + (first.thickness - 1) / 2) + 1
+    inner_bottom = ceil(last.y - (last.thickness - 1) / 2) - 1
+    endpoint_rows = (
+        *range(inner_top, inner_top + edge_depth),
+        *range(inner_bottom - edge_depth + 1, inner_bottom + 1),
+    )
     columns = []
     for x in range(left + 1, right):
         coverage = sum(pixels[x, y] <= threshold for y in rows) / len(rows)
@@ -123,12 +138,24 @@ def detect_barlines(
         coverage = max(value for _, value in group)
         near_head = any(abs(x - head.center_x) <= 1.1 * staff.spacing for head in heads)
         wide = len(group) > max(3, round(0.5 * staff.spacing))
-        status = "rejected" if near_head or wide else "accepted"
+        anchored = all(
+            any(pixels[column_x, y] <= threshold for column_x, _ in group)
+            for y in endpoint_rows
+        )
+        status = (
+            "rejected"
+            if near_head or wide
+            else "accepted"
+            if anchored
+            else "inconclusive"
+        )
         reason = (
             "near_notehead"
             if near_head
             else "too_wide"
             if wide
+            else "unanchored_staff_endpoint"
+            if not anchored
             else "vertical_staff_span"
         )
         candidates.append(

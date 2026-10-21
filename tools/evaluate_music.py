@@ -105,6 +105,12 @@ def evaluate_manifest(
             row["xml_export"] = "well_formed_not_schema_validated"
         except ValueError:
             row["xml_export"] = "blocked_by_prediction_issues"
+        if "review" in example:
+            # Integridade da referência é checada após a inferência; nunca
+            # fornece valores esperados ao reconhecedor.
+            from fluteomr.music_review import verify_review
+
+            verify_review(manifest_path, example)
         if example["reference_status"] in ("draft", "missing"):
             row["evaluation"] = "not_evaluated"
             row["evaluation_reason"] = (

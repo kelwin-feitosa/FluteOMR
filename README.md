@@ -747,3 +747,48 @@ Novas alterações só serão verificadas remotamente após o push aprovado.
 Avaliar transcrições contra trechos reais de flauta com referências musicais
 revisadas por humanos e renderização independente. Depois, estabilizar ritmo
 em fontes variadas antes de ampliar para pausas e acidentes.
+
+### Referência musical humana (Sprints 1G/1H)
+
+Os anotadores existentes revisam geometria; notas e durações são revisadas no
+MuseScore. O pacote novo reaproveita o manifesto do laboratório e mantém
+predições, candidato e referência humana separados. Para o trecho real de
+Twinkle já disponível, o pacote preparado nesta execução está em
+`outputs/sprint-1g/twinkle-human-review/`: sete notas candidatas em dois compassos,
+**ainda draft**. Confira o original e o recorte antes de consultar predições.
+
+Para criar outro pacote novo (o diretório não pode existir):
+
+```bash
+.venv/bin/python -m tools.music_review prepare \
+  outputs/teste-real/Twinkle_Twinkle_Sheet_Music.png \
+  --output-dir outputs/minha-revisao --id twinkle-first-two --work-id twinkle \
+  --crop 75 57 522 145 --scale 2 --measures 1 2 --staff-id s0 \
+  --measure-left 125 --measure-right 880 --auto-bars \
+  --candidate outputs/sprint-1g/twinkle-candidate.musicxml
+.venv/bin/python -m tools.music_review check outputs/minha-revisao/manifest.json
+flatpak run org.musescore.MuseScore outputs/minha-revisao/reference.musicxml
+```
+
+`crop` usa right/bottom exclusivos na imagem orientada por EXIF. Os limites
+`measure-left/right` são coordenadas da imagem derivada. Sem `--candidate`, crie
+`reference.musicxml` manualmente dentro do pacote antes de confirmar. Revise
+**todos** os eventos, compassos e símbolos, inclusive os não suportados. Se
+corrigir no MuseScore, exporte o MusicXML revisado para `reference.musicxml`;
+salvar apenas MSCZ não atualiza a referência. A prévia `candidate-preview.mscz`
+não comprova revisão e não é a saída automática do reconhecedor.
+
+Somente depois de revisar, execute você mesmo (não foi executado nos dados reais):
+
+```bash
+.venv/bin/python -m tools.music_review confirm outputs/minha-revisao/manifest.json \
+  --reviewer 'SEU NOME' --confirm-reviewed
+.venv/bin/python -m tools.evaluate_music --manifest outputs/minha-revisao/manifest.json \
+  --images-dir outputs/minha-revisao --summary --report outputs/minha-revisao/metrics.json
+```
+
+`check` e `confirm` são distintos. Enquanto draft/missing, a avaliação retorna
+`not_evaluated`. Após confirmação, alterações no XML, recorte ou origem são
+rejeitadas por integridade. Para alterar uma referência já selada, crie pacote
+novo. O pacote é de desenvolvimento; não use obras reservadas para ajustar o
+motor. Detalhes em `docs/decisions/0018-human-musical-reference-bundles.md`.

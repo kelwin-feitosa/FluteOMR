@@ -19,7 +19,7 @@ from fluteomr.notes import (
     notes_from_observations,
 )
 from fluteomr.rhythm import RhythmEvidence, detect_rhythm_evidence
-from fluteomr.staff_detection import Region, detect_staffs
+from fluteomr.staff_detection import Region, Staff, detect_staffs
 from fluteomr.symbols import (
     BarlineCandidate,
     StemCandidate,
@@ -131,19 +131,51 @@ def transcribe_measures(
     if result.status != "detected" or result.staff_count != 1:
         raise ValueError("a transcrição exige exatamente uma pauta válida")
     staff = result.staffs[0]
-    heads = detect_noteheads(
+    return transcribe_staff_measures(
         image,
         staff,
         result.threshold,
+        content_left=content_left,
+        content_right=content_right,
+        beats=beats,
+        part_name=part_name,
+        instrument=instrument,
+        normalize_heads=normalize_heads,
+        require_internal_bar=True,
+    )
+
+
+def transcribe_staff_measures(
+    image: Image.Image,
+    staff: Staff,
+    threshold: int,
+    *,
+    content_left: int,
+    content_right: int,
+    beats: int = 4,
+    part_name: str | None = None,
+    instrument: Instrument | None = None,
+    normalize_heads: bool = True,
+    require_internal_bar: bool = False,
+) -> TranscriptionResult:
+    """Consome geometria já detectada; bordas externas continuam provisórias.
+
+    Sem barra interna, assume um único intervalo entre as bordas fornecidas.
+    O chamador legado exige uma barra para preservar seu contrato anterior.
+    """
+    if beats < 1:
+        raise ValueError("beats deve ser positivo")
+    heads = detect_noteheads(
+        image,
+        staff,
+        threshold,
         content_left,
         content_right,
         normalize=normalize_heads,
     )
-    bars = detect_barlines(
-        image, staff, result.threshold, content_left, content_right, heads
-    )
+    bars = detect_barlines(image, staff, threshold, content_left, content_right, heads)
     accepted = [bar for bar in bars if bar.status == "accepted"]
-    if not accepted:
+    if not accepted and require_internal_bar:
         raise ValueError("nenhuma barra interna confiável encontrada")
     if any(
         right.x - left.x < 1.5 * staff.spacing
@@ -151,7 +183,7 @@ def transcribe_measures(
     ):
         raise ValueError("barras internas próximas ou ambíguas")
     boundaries = [content_left, *(bar.x for bar in accepted), content_right]
-    notes, stems, marks = _interpret_notes(image, staff, result.threshold, heads, bars)
+    notes, stems, marks = _interpret_notes(image, staff, threshold, heads, bars)
     measures = []
     for index, (left, right) in enumerate(
         zip(boundaries, boundaries[1:], strict=False), 1

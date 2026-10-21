@@ -792,3 +792,37 @@ Somente depois de revisar, execute você mesmo (não foi executado nos dados rea
 rejeitadas por integridade. Para alterar uma referência já selada, crie pacote
 novo. O pacote é de desenvolvimento; não use obras reservadas para ajustar o
 motor. Detalhes em `docs/decisions/0018-human-musical-reference-bundles.md`.
+
+### Página solo experimental, sem recortes manuais
+
+O comando novo processa pautas sequencialmente e devolve as coordenadas da página
+original orientada por EXIF. A associação das pautas à mesma parte depende da
+**declaração solo do usuário**; não aplique a duetos ou quartetos. Clave, 4/4 e
+identidade de flauta abaixo são configuração, não reconhecimento visual.
+
+```bash
+.venv/bin/python -m tools.transcribe_page \
+  outputs/teste-real/Twinkle_Twinkle_Sheet_Music.png \
+  --layout solo --clef treble --time 4/4 --instrument flute \
+  --report outputs/minha-pagina.json --output outputs/minha-pagina.musicxml
+```
+
+O relatório é preservado mesmo se a exportação for bloqueada (saída 1). Erros de
+entrada retornam 2. Uma página sem problemas conhecidos pode exportar, mas permanece
+**não validada**. Não há reconhecimento exaustivo de pausas/acidentes/fórmulas.
+Twinkle completo gerou 33 eventos em 13 intervalos provisórios e teve a exportação
+bloqueada; não há referência humana para calcular precisão. O trecho de dois
+compassos da seção anterior permanece preparado para revisão independente.
+
+A busca começa depois de uma clave visual aceita; sem ela, a pauta fica com erro.
+`--allow-clefless` serve para exercícios **sem clave impressa**, assumindo sol.
+`--leading-spaces N` configura margem adicional após a clave para excluir símbolos
+iniciais ainda não reconhecidos; não remove tinta do original. Bordas da pauta
+são limites provisórios de compassos. Barras finais/duplas continuam experimentais.
+O JSON inclui status por pauta, regiões, eventos, avisos e problemas; não considera
+pautas falhas como transcritas. Arquivos existentes são recusados.
+
+Testes reproduzíveis com duas pautas próprias e oito eventos conhecidos:
+`.venv/bin/python -m pytest -q tests/test_document.py`.
+A CLI legada `tools.transcribe` e `python -m fluteomr` continuam disponíveis.
+Decisão: `docs/decisions/0019-provisional-solo-page-transcription.md`.

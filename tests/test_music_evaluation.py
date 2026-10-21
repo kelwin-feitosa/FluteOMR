@@ -145,6 +145,9 @@ def test_time_cursor_reference_is_not_flattened_into_a_perfect_melody(cursor):
     assert report["unsupported"]["time_cursor"] == 1
     assert report["matches"] == report["aligned_events"] == 0
     assert report["skipped_reference_events"] == 2
+    assert report["unsupported_reference_events"] == 2
+    assert report["measure_results"][0]["status"] == "unevaluable"
+    assert report["measure_metrics"]["total"] == 1
     assert report["full_match_fraction"] == "not_evaluated"
     assert report["reference_xml_schema_validated"] is False
 
@@ -221,6 +224,112 @@ def test_inconclusive_measure_is_explicitly_unscored():
     assert report["skipped_predicted_events"] == 2
     assert report["full_match_fraction"] == "not_evaluated"
     assert report["duration_coverage"] == {"resolved": 1, "total": 2}
+
+
+def test_measure_results_keep_errors_and_unsupported_in_the_denominator():
+    reference = _xml(
+        [
+            [("E", 4, 2, None)],
+            [("F", 4, 2, None)],
+            [(None, None, 2, None)],
+            [],
+        ]
+    )
+    score = _score([[("E", 4, "quarter")], [("G", 4, "half")], [("A", 4, "quarter")]])
+    report = evaluate_music(reference, score)
+    assert report["measure_metrics"] == {
+        "reference": 4,
+        "predicted": 3,
+        "aligned": 3,
+        "total": 4,
+        "correct": 1,
+        "incorrect": 2,
+        "unevaluable": 1,
+        "omissions": 1,
+        "insertions": 0,
+        "correct_fraction": {"correct": 1, "total": 4},
+    }
+    rows = report["measure_results"]
+    assert [(r["number"], r["alignment"], r["status"]) for r in rows] == [
+        (1, "aligned", "correct"),
+        (2, "aligned", "incorrect"),
+        (3, "aligned", "unevaluable"),
+        (4, "omission", "incorrect"),
+    ]
+    assert rows[0]["matches"] == rows[0]["reference_events"] == 1
+    assert rows[1]["pitch_errors"] == rows[1]["duration_errors"] == 1
+    assert rows[2]["unsupported"] == {"rest": 1}
+    assert rows[2]["skipped_reference_events"] == 1
+    assert rows[2]["skipped_predicted_events"] == 1
+    assert rows[3]["reference_events"] == rows[3]["predicted_events"] == 0
+    assert report["evaluated_reference_events"] == 2
+    assert report["evaluated_predicted_events"] == 2
+    assert report["unsupported_reference_events"] == 1
+    assert report["unsupported_predicted_events"] == 0
+    assert report["full_match_fraction"] == "not_evaluated"
+
+
+def test_extra_empty_measure_is_incorrect_and_has_its_own_result():
+    report = evaluate_music(_xml([[]]), _score([[], []]))
+    assert report["measure_metrics"]["correct"] == 1
+    assert report["measure_metrics"]["incorrect"] == 1
+    assert report["measure_metrics"]["insertions"] == 1
+    assert report["measure_metrics"]["correct_fraction"] == {"correct": 1, "total": 2}
+    assert report["measure_results"][1]["alignment"] == "insertion"
+    assert report["measure_results"][1]["status"] == "incorrect"
+    assert report["full_match_fraction"] == "not_evaluated"
+
+
+def test_score_without_measures_has_no_measure_accuracy_denominator():
+    report = evaluate_music(_xml([]), _score([]))
+    assert report["measure_results"] == []
+    assert report["measure_metrics"]["total"] == 0
+    assert report["measure_metrics"]["correct"] == 0
+    assert report["measure_metrics"]["correct_fraction"] == "not_evaluated"
+
+
+def test_inconclusive_measure_result_retains_all_event_counts():
+    reference = _xml([[("E", 4, 2, None), ("F", 4, 2, None)]])
+    score = _score([[("E", 4, "quarter"), ("F", 4, "quarter")]])
+    part = score.parts[0]
+    measure = part.measures[0]
+    unknown = replace(measure.notes[1], pitch=None)
+    score = replace(
+        score,
+        parts=(
+            replace(
+                part, measures=(replace(measure, notes=(measure.notes[0], unknown)),)
+            ),
+        ),
+    )
+    report = evaluate_music(reference, score)
+    row = report["measure_results"][0]
+    assert row["status"] == "unevaluable"
+    assert row["inconclusive_predicted_events"] == 1
+    assert row["reference_events"] == row["predicted_events"] == 2
+    assert row["skipped_reference_events"] == row["skipped_predicted_events"] == 2
+    assert row["matches"] == row["aligned_events"] == 0
+    assert report["measure_metrics"]["unevaluable"] == 1
+    assert report["measure_metrics"]["correct_fraction"] == {"correct": 0, "total": 1}
+    assert report["unsupported_reference_events"] == 0
+    assert report["unsupported_predicted_events"] == 1
+
+
+def test_measure_results_distinguish_parts_and_keep_missing_unsupported_events():
+    reference = _xml([[(None, None, 2, None)]])
+    score = _score([[("E", 4, "quarter")]])
+    score = replace(score, parts=(replace(score.parts[0], measures=()), score.parts[0]))
+    report = evaluate_music(reference, score)
+    assert [(r["part_index"], r["alignment"]) for r in report["measure_results"]] == [
+        (0, "omission"),
+        (1, "insertion"),
+    ]
+    assert report["measure_metrics"]["total"] == 2
+    assert report["measure_metrics"]["incorrect"] == 2
+    assert report["measure_metrics"]["unevaluable"] == 0
+    assert report["measure_results"][0]["unsupported"] == {"rest": 1}
+    assert report["measure_results"][0]["skipped_reference_events"] == 1
+    assert report["measure_results"][1]["insertions"] == 1
 
 
 def test_lab_transcribes_before_reading_source_authored_reference(tmp_path):

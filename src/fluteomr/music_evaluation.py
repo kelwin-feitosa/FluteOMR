@@ -166,7 +166,12 @@ def _align(reference: tuple[Event, ...], prediction: tuple[Event, ...]) -> dict:
 
 
 def evaluate_music(reference_xml: bytes, prediction: MusicScore) -> dict:
-    """Compara por ordem de partes e número ordinal de compasso, sem inferir pixels."""
+    """Compara por ordem de partes e número explícito de compasso.
+
+    Resultados semânticos inconclusivos não pontuam eventos. Compassos ausentes
+    ou extras são incorretos mesmo vazios; os demais sem suporte são
+    inevaluáveis. A fração de compassos conserva a união completa no denominador.
+    """
     reference = parse_reference(reference_xml)
     predicted = tuple(
         tuple(
@@ -201,6 +206,7 @@ def evaluate_music(reference_xml: bytes, prediction: MusicScore) -> dict:
         0,
     )
     measure_errors = {"omissions": 0, "insertions": 0}
+    measure_results = []
     unsupported = {}
     skipped_reference_events = skipped_predicted_events = 0
     for part in (*reference, *predicted):
@@ -234,38 +240,78 @@ def evaluate_music(reference_xml: bytes, prediction: MusicScore) -> dict:
         ):
             raise ValueError("número de compasso previsto repetido")
         for number in sorted(truth_part.keys() | found_part.keys()):
+            truth_measure = truth_part.get(number)
+            found_measure = found_part.get(number)
+            truth = truth_measure.events if truth_measure else ()
+            found = found_measure.events if found_measure else ()
+            row = {
+                "part_index": part_index,
+                "number": number,
+                "alignment": "aligned",
+                "status": "incorrect",
+                "reference_events": len(truth),
+                "predicted_events": len(found),
+                "unsupported": {},
+                "inconclusive_predicted_events": sum(
+                    event.unsupported == "inconclusive" for event in found
+                ),
+                "skipped_reference_events": 0,
+                "skipped_predicted_events": 0,
+                **dict.fromkeys(totals, 0),
+            }
+            for measure in (truth_measure, found_measure):
+                if measure is None:
+                    continue
+                for reason in (
+                    measure.unsupported,
+                    *(e.unsupported for e in measure.events),
+                ):
+                    if reason:
+                        row["unsupported"][reason] = (
+                            row["unsupported"].get(reason, 0) + 1
+                        )
             if number not in truth_part:
                 measure_errors["insertions"] += 1
-                totals["insertions"] += sum(
-                    not event.unsupported for event in found_part[number].events
+                row["alignment"] = "insertion"
+                row["insertions"] = sum(not event.unsupported for event in found)
+                row["skipped_predicted_events"] = sum(
+                    bool(event.unsupported) for event in found
                 )
-                skipped_predicted_events += sum(
-                    bool(event.unsupported) for event in found_part[number].events
-                )
-                continue
-            if number not in found_part:
+            elif number not in found_part:
                 measure_errors["omissions"] += 1
-                missing = truth_part[number]
-                if missing.unsupported:
-                    skipped_reference_events += len(missing.events)
+                row["alignment"] = "omission"
+                if truth_measure.unsupported:
+                    row["skipped_reference_events"] = len(truth)
                 else:
-                    totals["omissions"] += sum(
-                        not event.unsupported for event in missing.events
+                    row["omissions"] = sum(not event.unsupported for event in truth)
+                    row["skipped_reference_events"] = sum(
+                        bool(event.unsupported) for event in truth
                     )
-                    skipped_reference_events += sum(
-                        bool(event.unsupported) for event in missing.events
-                    )
-                continue
-            truth_measure, found_measure = truth_part[number], found_part[number]
-            truth, found = truth_measure.events, found_measure.events
-            if truth_measure.unsupported or any(
+            elif truth_measure.unsupported or any(
                 event.unsupported for event in (*truth, *found)
             ):
-                skipped_reference_events += len(truth)
-                skipped_predicted_events += len(found)
-                continue
-            for key, value in _align(truth, found).items():
-                totals[key] += value
+                row["status"] = "unevaluable"
+                row["skipped_reference_events"] = len(truth)
+                row["skipped_predicted_events"] = len(found)
+            else:
+                row.update(_align(truth, found))
+                if not any(
+                    row[key] for key in ("insertions", "omissions", "substitutions")
+                ):
+                    row["status"] = "correct"
+            row["aligned_events"] = row["matches"] + row["substitutions"]
+            row["evaluated_reference_events"] = (
+                len(truth) - row["skipped_reference_events"]
+            )
+            row["evaluated_predicted_events"] = (
+                len(found) - row["skipped_predicted_events"]
+            )
+            measure_results.append(row)
+            skipped_reference_events += row["skipped_reference_events"]
+            skipped_predicted_events += row["skipped_predicted_events"]
+            for key in totals:
+                totals[key] += row[key]
+    correct_measures = sum(row["status"] == "correct" for row in measure_results)
     return {
         "status": "partial" if unsupported else "evaluated",
         "reference_xml_parsed": True,
@@ -283,9 +329,41 @@ def evaluate_music(reference_xml: bytes, prediction: MusicScore) -> dict:
         "reference_events": expected_count,
         "predicted_events": predicted_count,
         "measure_errors": measure_errors,
+        "measure_results": measure_results,
+        "measure_metrics": {
+            "reference": sum(map(len, reference)),
+            "predicted": sum(map(len, predicted)),
+            "aligned": sum(row["alignment"] == "aligned" for row in measure_results),
+            "total": len(measure_results),
+            "correct": correct_measures,
+            "incorrect": sum(row["status"] == "incorrect" for row in measure_results),
+            "unevaluable": sum(
+                row["status"] == "unevaluable" for row in measure_results
+            ),
+            **measure_errors,
+            "correct_fraction": (
+                {"correct": correct_measures, "total": len(measure_results)}
+                if measure_results
+                else "not_evaluated"
+            ),
+        },
         "unsupported": unsupported,
+        "unsupported_reference_events": sum(
+            bool(measure.unsupported or event.unsupported)
+            for part in reference
+            for measure in part
+            for event in measure.events
+        ),
+        "unsupported_predicted_events": sum(
+            bool(measure.unsupported or event.unsupported)
+            for part in predicted
+            for measure in part
+            for event in measure.events
+        ),
         "skipped_reference_events": skipped_reference_events,
         "skipped_predicted_events": skipped_predicted_events,
+        "evaluated_reference_events": expected_count - skipped_reference_events,
+        "evaluated_predicted_events": predicted_count - skipped_predicted_events,
         "inconclusive_predicted_events": sum(
             event.unsupported == "inconclusive"
             for part in predicted

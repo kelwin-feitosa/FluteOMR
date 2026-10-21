@@ -23,8 +23,14 @@ class NoteheadObservation:
 
 def pitch_from_y(y: float, staff: Staff) -> Pitch | None:
     """Mi4 na linha inferior; cada meio espaçamento avança um grau diatônico."""
-    half_gap = staff.spacing / 2
-    displacement = (staff.lines[-1].y - y) / half_gap
+    # Interpola entre linhas observadas; o erro de um espaçamento mediano não
+    # deve se acumular por toda a altura da pauta. Extrapola só pelo vão externo.
+    index = next((i for i in range(4) if y <= staff.lines[i + 1].y), 3)
+    top, bottom = staff.lines[index : index + 2]
+    gap = bottom.y - top.y
+    if gap <= 0:
+        return None
+    displacement = 8 - 2 * index - 2 * (y - top.y) / gap
     step_index = round(displacement)
     if abs(displacement - step_index) > 0.25 or not -4 <= step_index <= 12:
         return None
@@ -168,6 +174,36 @@ def _encloses_hole(
     return False
 
 
+def _compact_horizontal_support(
+    ink: bytearray,
+    width: int,
+    height: int,
+    x: int,
+    y: int,
+    spacing: float,
+) -> bool:
+    """Cabeças têm largura finita em várias linhas; um feixe continua além delas.
+
+    Examina a faixa central de meia distância de pauta. Pelo menos 0,15 espaço
+    de linhas deve conter um trecho de 0,5 a 1,8 espaço de largura. A linha
+    suplementar pode ser mais longa: não se exige compacidade de todas as linhas.
+    """
+    compact = 0
+    radius = max(1, round(0.25 * spacing))
+    reach = ceil(3 * spacing)
+    for py in range(max(0, y - radius), min(height, y + radius + 1)):
+        if not ink[py * width + x]:
+            continue
+        left = right = x
+        while left > 0 and x - left < reach and ink[py * width + left - 1]:
+            left -= 1
+        while right < width - 1 and right - x < reach and ink[py * width + right + 1]:
+            right += 1
+        if 0.5 * spacing <= right - left + 1 <= 1.8 * spacing:
+            compact += 1
+    return compact >= max(2, ceil(0.15 * spacing))
+
+
 def detect_noteheads(
     image: Image.Image,
     staff: Staff,
@@ -235,6 +271,10 @@ def detect_noteheads(
                 if match is None:
                     continue
                 visual_kind, score = match
+                if visual_kind == "filled" and not _compact_horizontal_support(
+                    ink, image.width, image.height, x, y, spacing
+                ):
+                    continue
                 if visual_kind == "hollow" and not _encloses_hole(
                     gray, image.width, threshold, x, y, rx, ry, spacing
                 ):

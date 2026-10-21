@@ -613,6 +613,67 @@ múltiplas vozes/pautas e ligaduras como `unsupported`, em vez de contá-los com
 acertos. Parsing XML, validação por esquema e equivalência musical permanecem
 verificações distintas. Consulte a decisão 0016.
 
+### Sprint 1D: avaliação por obra, variante e compasso
+
+O laboratório aceita `configured.auto_bars: true` para múltiplos compassos e
+`reference_status: "missing"` com `reference: null` para materiais sem referência
+humana. Esses materiais são processados, mas ficam `not_evaluated`. Rascunhos
+continuam sem pontuação. `--continue-on-error` registra imagens com falha e
+retorna código 1 ao final; erros de formato continuam retornando 2.
+
+`--summary` inclui eventos e compassos conhecidos inclusive nas falhas, além
+dos eventos não avaliados. `measure_results` detalha cada compasso e
+`measure_metrics` separa correto, incorreto e não avaliável. O total é a união
+dos compassos de referência e previstos, portanto inclui compassos extras.
+O pareamento usa número explícito: uma barra falsa pode causar simultaneamente
+inserções e omissões de eventos. A fração agregada conta correspondências
+confirmadas sobre **todos** os eventos conhecidos; com eventos não avaliados,
+é um limite inferior observado, não uma estimativa de acurácia geral.
+
+`work_id` identifica a obra; fonte e DPI são variantes, não obras independentes.
+`--split development` ou `--split validation` evita abrir o conjunto reservado.
+Sem esse filtro, o comportamento anterior de processar todo o manifesto permanece.
+
+Três exercícios próprios novos em `tests/data/music_lab/sprint1d/` têm referência
+MusicXML independente da inferência: dois de desenvolvimento e um de validação,
+avaliado após congelar o detector. Os símbolos e durações vêm dos pixels; clave,
+4/4 e limites externos são configuração. Clave/fórmula estão visualmente ocultas
+nesses exercícios, que não reproduzem a complexidade de uma partitura real.
+Leland e Bravura são fontes do **mesmo MuseScore**, não renderizadores independentes.
+
+Para renderizar com o Flatpak existente e avaliar:
+
+```bash
+mkdir -p outputs/sprint-1d/rendered
+for name in dev_register dev_beams validation_intervals; do
+  for font in Leland Bravura; do
+    for dpi in 150 200 300; do
+      flatpak run --env=QT_QPA_PLATFORM=offscreen org.musescore.MuseScore \
+        -S "tests/data/music_lab/sprint1d/styles/$font.mss" -r "$dpi" -T 12 \
+        -o "outputs/sprint-1d/rendered/$name-$font-$dpi.png" \
+        "tests/data/music_lab/sprint1d/$name.musicxml"
+    done
+  done
+done
+.venv/bin/python -m tools.evaluate_music \
+  --manifest tests/data/music_lab/sprint1d/development-manifest.json \
+  --images-dir outputs/sprint-1d/rendered --split development \
+  --continue-on-error --summary --report outputs/sprint-1d/development-report.json
+```
+
+Troque por `validation-manifest.json` e `--split validation` para a validação já
+consultada. Limites e imagens foram registrados para MuseScore 4.7.5 com corte
+de 12 px; outra versão/layout exige conferir a configuração, não alterar a referência.
+
+As correções exigem suporte horizontal compacto para cabeças preenchidas e
+calculam alturas entre as linhas locais observadas. No desenvolvimento a 150
+DPI, correspondências completas passaram de 8/30 para 23/30 e candidatos de
+57 para 25; a validação nova permaneceu em 4/14, com barras falsas e omissões.
+Em 200/300 DPI, a versão final obteve 30/30 no desenvolvimento e 14/14 na
+validação, em cada resolução. São 132 instâncias renderizadas de 22 eventos
+musicais em três exercícios; não 132 notas independentes nem precisão em
+partituras reais. Detalhes, limitações e protocolo estão na decisão 0017.
+
 Garantido pelos testes sintéticos: dez casos positivos (deslocamento, espessuras
 1–4 px, espaçamentos 6–24 px, duas pautas, símbolos simples, interrupções curtas e
 ruído de 0,5%) retornam a contagem correta, cinco linhas ordenadas e erro máximo

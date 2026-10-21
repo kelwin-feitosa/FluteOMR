@@ -1,0 +1,42 @@
+[
+  {
+    "image": "beam-first-measure-150.png",
+    "sha256": "5cfe9c74545395091c8ea7d385916451ea31e4f9f6abe112b356a694b20f95b5",
+    "source_image": "outputs/sprint-1d/rendered/dev_beams-Leland-150-1.png",
+    "source_sha256": "fda95d71d400feef84e8cb85afe8138a73e9b22314b575400f1d9b97a9904c55",
+    "crop": [
+      50,
+      45,
+      580,
+      145
+    ],
+    "dpi": 150,
+    "font": "Leland",
+    "renderer": "MuseScore4.7.5",
+    "reference": "dev_beams.musicxml",
+    "reference_sha256": "21a7744526e004b7aab3aa4bde13b69ea764987c37ee4cbc0b93eeba6e82bc07",
+    "reference_scope": "First measure only; own source MusicXML authored before inference",
+    "split": "development",
+    "rights": "Original FluteOMR exercise. Generated raster only; no third-party score or font redistributed."
+  },
+  {
+    "image": "beam-first-measure-300.png",
+    "sha256": "f25ca42dac7925d2833875387bee927487546e2c754429f3f415df4397882622",
+    "source_image": "outputs/sprint-1d/rendered/dev_beams-Leland-300-1.png",
+    "source_sha256": "1b4970126cb5988324800555a1708e8c68fe77e51368a2745bcb227f8323a2a5",
+    "crop": [
+      100,
+      90,
+      1160,
+      300
+    ],
+    "dpi": 300,
+    "font": "Leland",
+    "renderer": "MuseScore4.7.5",
+    "reference": "dev_beams.musicxml",
+    "reference_sha256": "21a7744526e004b7aab3aa4bde13b69ea764987c37ee4cbc0b93eeba6e82bc07",
+    "reference_scope": "First measure only; own source MusicXML authored before inference",
+    "split": "development",
+    "rights": "Original FluteOMR exercise. Generated raster only; no third-party score or font redistributed."
+  }
+]

@@ -1,0 +1,131 @@
+{
+  "format_version": 1,
+  "examples": [
+    {
+      "id": "validation_intervals-Leland-150",
+      "work_id": "validation_intervals",
+      "image": "validation_intervals-Leland-150-1.png",
+      "reference": "validation_intervals.musicxml",
+      "origin": "original_musicxml_rendered_musescore",
+      "source_category": "new_original_validation",
+      "split": "validation",
+      "reference_status": "source_authored",
+      "renderer": "MuseScore4.7.5",
+      "font": "Leland",
+      "dpi": 150,
+      "configured": {
+        "measure_left": 4,
+        "measure_right": 1058,
+        "auto_bars": true,
+        "bounds_origin": "staff_extents_with_declared_outer_bar_margin",
+        "clef": "treble",
+        "time": "4/4"
+      }
+    },
+    {
+      "id": "validation_intervals-Leland-200",
+      "work_id": "validation_intervals",
+      "image": "validation_intervals-Leland-200-1.png",
+      "reference": "validation_intervals.musicxml",
+      "origin": "original_musicxml_rendered_musescore",
+      "source_category": "new_original_validation",
+      "split": "validation",
+      "reference_status": "source_authored",
+      "renderer": "MuseScore4.7.5",
+      "font": "Leland",
+      "dpi": 200,
+      "configured": {
+        "measure_left": 5,
+        "measure_right": 1411,
+        "auto_bars": true,
+        "bounds_origin": "staff_extents_with_declared_outer_bar_margin",
+        "clef": "treble",
+        "time": "4/4"
+      }
+    },
+    {
+      "id": "validation_intervals-Leland-300",
+      "work_id": "validation_intervals",
+      "image": "validation_intervals-Leland-300-1.png",
+      "reference": "validation_intervals.musicxml",
+      "origin": "original_musicxml_rendered_musescore",
+      "source_category": "new_original_validation",
+      "split": "validation",
+      "reference_status": "source_authored",
+      "renderer": "MuseScore4.7.5",
+      "font": "Leland",
+      "dpi": 300,
+      "configured": {
+        "measure_left": 8,
+        "measure_right": 2117,
+        "auto_bars": true,
+        "bounds_origin": "staff_extents_with_declared_outer_bar_margin",
+        "clef": "treble",
+        "time": "4/4"
+      }
+    },
+    {
+      "id": "validation_intervals-Bravura-150",
+      "work_id": "validation_intervals",
+      "image": "validation_intervals-Bravura-150-1.png",
+      "reference": "validation_intervals.musicxml",
+      "origin": "original_musicxml_rendered_musescore",
+      "source_category": "new_original_validation",
+      "split": "validation",
+      "reference_status": "source_authored",
+      "renderer": "MuseScore4.7.5",
+      "font": "Bravura",
+      "dpi": 150,
+      "configured": {
+        "measure_left": 4,
+        "measure_right": 1058,
+        "auto_bars": true,
+        "bounds_origin": "staff_extents_with_declared_outer_bar_margin",
+        "clef": "treble",
+        "time": "4/4"
+      }
+    },
+    {
+      "id": "validation_intervals-Bravura-200",
+      "work_id": "validation_intervals",
+      "image": "validation_intervals-Bravura-200-1.png",
+      "reference": "validation_intervals.musicxml",
+      "origin": "original_musicxml_rendered_musescore",
+      "source_category": "new_original_validation",
+      "split": "validation",
+      "reference_status": "source_authored",
+      "renderer": "MuseScore4.7.5",
+      "font": "Bravura",
+      "dpi": 200,
+      "configured": {
+        "measure_left": 5,
+        "measure_right": 1411,
+        "auto_bars": true,
+        "bounds_origin": "staff_extents_with_declared_outer_bar_margin",
+        "clef": "treble",
+        "time": "4/4"
+      }
+    },
+    {
+      "id": "validation_intervals-Bravura-300",
+      "work_id": "validation_intervals",
+      "image": "validation_intervals-Bravura-300-1.png",
+      "reference": "validation_intervals.musicxml",
+      "origin": "original_musicxml_rendered_musescore",
+      "source_category": "new_original_validation",
+      "split": "validation",
+      "reference_status": "source_authored",
+      "renderer": "MuseScore4.7.5",
+      "font": "Bravura",
+      "dpi": 300,
+      "configured": {
+        "measure_left": 8,
+        "measure_right": 2117,
+        "auto_bars": true,
+        "bounds_origin": "staff_extents_with_declared_outer_bar_margin",
+        "clef": "treble",
+        "time": "4/4"
+      }
+    }
+  ]
+}

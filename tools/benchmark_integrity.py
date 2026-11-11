@@ -46,7 +46,7 @@ def validate_examples(
         split = example.get("split")
         if not isinstance(identifier, str) or not identifier.strip():
             raise BenchmarkIntegrityError(f"{where}: id ausente ou inválido")
-        if split not in SPLITS:
+        if not isinstance(split, str) or split not in SPLITS:
             raise BenchmarkIntegrityError(f"{where}: split inválido: {split!r}")
         if require_explicit_work_id and "work_id" not in example:
             raise BenchmarkIntegrityError(
@@ -81,7 +81,11 @@ def validate_manifests(
     counts = {name: {"examples": 0, "works": 0} for name in sorted(SPLITS)}
     for path in paths:
         data = json.loads(path.read_text(encoding="utf-8"))
-        if not isinstance(data, dict) or data.get("format_version") != 1:
+        if (
+            not isinstance(data, dict)
+            or type(data.get("format_version")) is not int
+            or data["format_version"] != 1
+        ):
             raise BenchmarkIntegrityError(f"{path}: format_version incompatível")
         validate_examples(
             data.get("examples"),
@@ -105,7 +109,9 @@ def validate_manifests(
         "work_count": len(seen_work_splits),
         "by_split": counts,
         "status": "metadata_consistent",
-        "caveat": "A separação depende de work_id identificar todas as variantes da mesma obra.",
+        "caveat": (
+            "A separação depende de work_id identificar todas as variantes da mesma obra."
+        ),
     }
 
 

@@ -1,6 +1,7 @@
 """Sonda OMR em páginas reais: mede cobertura sem gerar MusicXML não validado."""
 
 import argparse
+import hashlib
 import json
 from collections import Counter
 from pathlib import Path
@@ -24,6 +25,19 @@ def probe_pdf(
         raise FileExistsError("relatório existente; não sobrescrever")
     started = perf_counter()
     image = load_pdf_page(source, page_number=page_number, dpi=dpi)
+    # O checksum liga as duas variantes aos mesmos bytes e à mesma
+    # rasterização; quando o carregamento é simulado, não inventar hash.
+    if source.is_file():
+        with source.open("rb") as stream:
+            source_hash = hashlib.file_digest(stream, "sha256").hexdigest()
+    else:
+        source_hash = None
+    image_hash = hashlib.sha256(image.convert("RGB").tobytes()).hexdigest()
+    provenance = {
+        "source_pdf_sha256": source_hash,
+        "page_image_sha256": image_hash,
+        "page_image_size": list(image.size),
+    }
     loaded_seconds = perf_counter() - started
     started = perf_counter()
     try:
@@ -39,6 +53,7 @@ def probe_pdf(
         payload = {
             "format_version": 1,
             "source_pdf": source.name,
+            **provenance,
             "page_number": page_number,
             "dpi": dpi,
             "experimental_adaptive_secondary": adaptive_secondary,
@@ -64,6 +79,7 @@ def probe_pdf(
         payload = {
             "format_version": 1,
             "source_pdf": source.name,
+            **provenance,
             "page_number": page_number,
             "dpi": dpi,
             "experimental_adaptive_secondary": adaptive_secondary,

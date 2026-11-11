@@ -67,11 +67,11 @@ def _analyse_xml(path: Path) -> dict:
                     raise CandidateReferenceError("duração numérica inválida")
                 if index == 0 and len(first_measure) < 24:
                     pitch = note.find(q("pitch"))
-                    pitch_step = pitch.findtext(q("step")) if pitch is not None else None
-                    pitch_alter = pitch.findtext(q("alter")) if pitch is not None else None
-                    pitch_octave = (
-                        pitch.findtext(q("octave")) if pitch is not None else None
-                    )
+                    pitch_step = pitch_alter = pitch_octave = None
+                    if pitch is not None:
+                        pitch_step = pitch.findtext(q("step"))
+                        pitch_alter = pitch.findtext(q("alter"))
+                        pitch_octave = pitch.findtext(q("octave"))
                     first_measure.append(
                         {
                             "part_id": part.get("id"),

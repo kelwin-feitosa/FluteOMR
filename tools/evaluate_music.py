@@ -193,14 +193,10 @@ def summarize_results(rows: list[dict]) -> dict:
                 reference_events += row.get("reference_events", 0)
         cohorts[status] = {
             "images": len(members),
-            "musical_works": len(
-                {row.get("work_id", row["id"]) for row in members}
-            ),
+            "musical_works": len({row.get("work_id", row["id"]) for row in members}),
             "reference_events": reference_events,
             "complete_matches": matches,
-            "processing_failures": sum(
-                "processing_error" in row for row in members
-            ),
+            "processing_failures": sum("processing_error" in row for row in members),
             "match_fraction": (
                 {"matched": matches, "expected": reference_events}
                 if reference_events and status in ("validated", "source_authored")

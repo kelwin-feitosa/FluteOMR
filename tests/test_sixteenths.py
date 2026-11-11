@@ -68,7 +68,10 @@ def test_one_secondary_pair_only_promotes_its_connected_notes():
     events = score.parts[0].measures[0].notes
     assert len(events) == 4
     assert [note.duration.kind for note in events] == [
-        "sixteenth", "sixteenth", "eighth", "eighth"
+        "sixteenth",
+        "sixteenth",
+        "eighth",
+        "eighth",
     ]
     assert [note.beam_levels for note in events] == [
         ((1, "begin"), (2, "begin")),

@@ -36,6 +36,7 @@ def _analyse_xml(path: Path) -> dict:
         namespace = ""
     else:
         raise CandidateReferenceError("somente score-partwise é permitido")
+
     def q(name: str) -> str:
         return namespace + name
 
@@ -115,16 +116,23 @@ def _read_prefix_guard(source: Path, manifest: Path) -> tuple[list[dict], str]:
         raise CandidateReferenceError("lista de eventos de prefixo inválida")
     for event in expected:
         if not isinstance(event, dict) or set(event) != {
-            "rest", "type", "step", "alter", "octave"
+            "rest",
+            "type",
+            "step",
+            "alter",
+            "octave",
         }:
             raise CandidateReferenceError("evento de prefixo inválido")
         if type(event["rest"]) is not bool or event["type"] not in (
-            "16th", "eighth", "quarter", "half"
+            "16th",
+            "eighth",
+            "quarter",
+            "half",
         ):
             raise CandidateReferenceError("tipo de evento de prefixo inválido")
-        if event["rest"] and any(event[key] is not None for key in (
-            "step", "alter", "octave"
-        )):
+        if event["rest"] and any(
+            event[key] is not None for key in ("step", "alter", "octave")
+        ):
             raise CandidateReferenceError("pausa não deve ter altura")
     return expected, literal
 
@@ -134,17 +142,15 @@ def _verify_prefix(candidate: dict, expected: list[dict]) -> dict:
     details = []
     for index, wanted in enumerate(expected):
         observed = preview[index] if index < len(preview) else None
-        found = (
-            {key: observed[key] for key in wanted}
-            if observed is not None
-            else None
-        )
+        found = {key: observed[key] for key in wanted} if observed is not None else None
         if found != wanted:
-            details.append({
-                "event_index": index,
-                "expected": wanted,
-                "observed": found,
-            })
+            details.append(
+                {
+                    "event_index": index,
+                    "expected": wanted,
+                    "observed": found,
+                }
+            )
     return {
         "status": "mismatch" if details else "prefix_matches_only",
         "compared_events": len(expected),

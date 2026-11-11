@@ -99,9 +99,11 @@ def test_mixed_rhythm_serializes_correct_second_beam_levels(
     assert [note.findtext("type") for note in notes] == [
         "eighth" if item == "eighth" else "16th" for item in kind
     ]
-    assert [
-        note.find("beam[@number='1']").text for note in notes
-    ] == ["begin", "continue", "end"]
+    assert [note.find("beam[@number='1']").text for note in notes] == [
+        "begin",
+        "continue",
+        "end",
+    ]
     assert [
         (b.text if (b := note.find("beam[@number='2']")) is not None else None)
         for note in notes

@@ -51,7 +51,7 @@ def probe_pdf(
         result = transcribe_page(image, **options)
     except (OSError, ValueError) as exc:
         payload = {
-            "format_version": 1,
+            "format_version": 2,
             "source_pdf": source.name,
             **provenance,
             "page_number": page_number,
@@ -77,7 +77,7 @@ def probe_pdf(
             diagnostic for note in unknown_durations for diagnostic in note.diagnostics
         )
         payload = {
-            "format_version": 1,
+            "format_version": 2,
             "source_pdf": source.name,
             **provenance,
             "page_number": page_number,

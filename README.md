@@ -241,6 +241,29 @@ limitações e protocolo em
 [`docs/decisions/0024-sixteenth-beam-evidence.md`](
 docs/decisions/0024-sixteenth-beam-evidence.md).
 
+## Feixes secundários parciais e grupos rítmicos mistos
+
+O motor também possui suporte **experimental** à relação entre cada
+haste e os feixes secundários confirmados visualmente. Isso permite
+distinguir, num grupo de mesmo feixe principal, uma colcheia de
+semicolcheias adjacentes unidas por um segundo feixe completo, quando
+as outras conexões estão claramente sem traço secundário. A conversão
+MusicXML preserva os níveis 1 e 2 por nota, incluindo hooks quando
+informados explicitamente por uma fonte musical validada. **O detector
+ainda não infere hooks isolados pela imagem.**
+
+Feixes parcialmente interrompidos, espessos demais ou ambíguos continuam
+inconclusivos. A sonda real agora registra também os motivos mais
+específicos da incerteza e quantas notas pertencem a grupos mistos
+confirmados. Nenhum MusicXML gerado por conversor incompatível entra
+nessa avaliação como ground truth.
+
+O teste controlado cobre tanto colcheia + duas semicolcheias quanto
+duas semicolcheias + colcheia, além de marcas negativas. Essa
+cobertura de software não equivale à precisão em partituras publicadas.
+Consulte [ADR 0026](docs/decisions/0026-explicit-musicxml-beam-levels.md)
+e [ADR 0027](docs/decisions/0027-partial-secondary-beam-geometry.md).
+
 ## Referências MusicXML derivadas de LilyPond (não validadas)
 
 Para investigar a referência musical da edição Mutopia BWV 1013, o workflow

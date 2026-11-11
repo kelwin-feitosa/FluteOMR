@@ -65,7 +65,12 @@ def _interpret_notes(image, staff, threshold, heads, barlines=()):
                         "sixteenth" if mark.kind == "double_beam" else "eighth"
                     ),
                     beam=mark.beam_position,
-                    diagnostics=(*note.diagnostics, mark.kind),
+                    beam_levels=mark.beam_levels,
+                    diagnostics=(
+                        *note.diagnostics,
+                        mark.kind,
+                        *((mark.reason,) if mark.beam_levels else ()),
+                    ),
                 )
             )
     return tuple(notes), stems, marks

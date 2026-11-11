@@ -74,11 +74,7 @@ def render_fixture(
         or not 1 <= timeout <= 600
     ):
         raise MuseScoreRenderError("timeout inválido")
-    if (
-        not formats
-        or len(set(formats)) != len(formats)
-        or not set(formats) <= FORMATS
-    ):
+    if not formats or len(set(formats)) != len(formats) or not set(formats) <= FORMATS:
         raise MuseScoreRenderError("formatos inválidos ou repetidos")
     if destination.exists() or destination == source.parent:
         raise FileExistsError("diretório de saída já existe; não sobrescrever")
@@ -207,9 +203,9 @@ def main() -> None:
         result = render_fixture(
             args.musicxml,
             args.out_dir,
-            formats=tuple(args.format) if args.format else (
-                "pdf", "png", "mpos", "spos"
-            ),
+            formats=tuple(args.format)
+            if args.format
+            else ("pdf", "png", "mpos", "spos"),
             dpi=args.dpi,
             binary=args.binary,
             timeout=args.timeout,

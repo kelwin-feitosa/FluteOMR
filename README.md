@@ -87,6 +87,10 @@ anotações são independentes, nem valida a precisão musical: isso requer
 partituras reais e referências revisadas por pessoas. Consulte
 [`docs/audit-2026-11-11.md`](docs/audit-2026-11-11.md) para os achados
 priorizados e o alcance das alterações.
+Consulte também [`docs/api-contracts.md`](docs/api-contracts.md) para fronteiras de módulos,
+contratos experimentais e política de compatibilidade. O resumo de avaliação
+separa resultados `validated` e `source_authored` em `reference_quality`;
+uma referência marcada `validated` exige pacote de revisão verificável.
 
 ## Demonstração local e API
 

@@ -31,12 +31,40 @@ def parse_reference(xml: bytes) -> tuple[tuple[MeasureEvents, ...], ...]:
     for part in root.findall("part"):
         measures = []
         divisions = None
+        key_status = None
+        time_status = None
+        clef_status = None
         for measure in part.findall("measure"):
             new_divisions = measure.findtext("attributes/divisions")
             if new_divisions is not None:
                 divisions = int(new_divisions)
             if not divisions or divisions < 1:
                 raise ValueError("divisions ausente ou inválido")
+
+            # Elementos de attributes valem até uma próxima alteração explícita.
+            # Não podemos pontuar F# como F natural quando há armadura, mesmo
+            # que o XML omita <alter> nas notas individuais.
+            key = measure.find("attributes/key")
+            if key is not None:
+                fifths = key.findtext("fifths")
+                if fifths is None:
+                    key_status = "nontraditional_key"
+                else:
+                    key_status = "key_signature" if int(fifths) != 0 else None
+            time = measure.find("attributes/time")
+            if time is not None:
+                beats = time.findtext("beats")
+                beat_type = time.findtext("beat-type")
+                time_status = (
+                    None if (beats, beat_type) == ("4", "4") else "time_signature"
+                )
+            clef = measure.find("attributes/clef")
+            if clef is not None:
+                clef_status = (
+                    None
+                    if (clef.findtext("sign"), clef.findtext("line")) == ("G", "2")
+                    else "clef"
+                )
             # A ordem XML não é a ordem temporal quando o cursor é reposicionado.
             # Não achatar vozes/pautas simultâneas como uma melodia monofônica.
             voices = {note.findtext("voice", "1") for note in measure.findall("note")}
@@ -49,6 +77,8 @@ def parse_reference(xml: bytes) -> tuple[tuple[MeasureEvents, ...], ...]:
                 measure_unsupported = "time_cursor"
             elif len(voices) > 1 or len(staffs) > 1:
                 measure_unsupported = "multiple_voices_or_staffs"
+            else:
+                measure_unsupported = key_status or time_status or clef_status
             events = []
             for note in measure.findall("note"):
                 raw_duration = note.findtext("duration")
@@ -79,7 +109,25 @@ def parse_reference(xml: bytes) -> tuple[tuple[MeasureEvents, ...], ...]:
                 ):
                     raise ValueError("nota de referência incompleta")
                 alter = pitch.findtext("alter")
-                unsupported = "chromatic_alteration" if alter is not None else None
+                unsupported = None
+                note_type = note.findtext("type")
+                if note_type is not None and note_type not in (
+                    "eighth",
+                    "quarter",
+                    "half",
+                ):
+                    unsupported = "unsupported_note_type"
+                if (
+                    note.find("time-modification") is not None
+                    or note.find("notations/tuplet") is not None
+                ):
+                    unsupported = "tuplet"
+                if note.find("dot") is not None:
+                    unsupported = "augmentation_dot"
+                # Um acidente de cortesia/natural pode estar desenhado mesmo
+                # quando o MusicXML não contém <pitch><alter>.
+                if alter is not None or note.find("accidental") is not None:
+                    unsupported = "chromatic_alteration"
                 if (
                     note.find("tie") is not None
                     or note.find("notations/tied") is not None

@@ -8,7 +8,7 @@ Desenvolva o motor de reconhecimento no próprio projeto. Audiveris, HOMR e outr
 
 ## Estrutura e arquitetura
 
-O núcleo está em `src/fluteomr/`, os testes em `tests/` e as regras para recursos em `assets/`. `pyproject.toml` configura o projeto; `README.md` documenta instalação e verificações. Registre decisões em `docs/decisions/`. Há detecção de pautas PNG/JPEG, sistemas, clave de sol experimental e um primeiro pipeline limitado de notas até MusicXML. `tools/staff_examples.py` gera exemplos próprios e avaliação.
+O núcleo está em `src/fluteomr/`, os testes em `tests/` e as regras para recursos em `assets/`. `pyproject.toml` configura o projeto; `README.md` documenta instalação e verificações. Registre decisões em `docs/decisions/`. Há detecção de pautas em imagens PNG/JPEG e páginas PDF rasterizadas opcionalmente, sistemas, clave de sol experimental e um pipeline limitado de notas até MusicXML. `tools/staff_examples.py` gera exemplos próprios e avaliação.
 
 Use Python no processamento, com núcleo independente das interfaces e compartilhável futuramente entre desktop e navegador. Não escolha framework gráfico antecipadamente sem justificativa. Registre decisões arquiteturais relevantes, alternativas e consequências. Considere Linux, Intel i3-7100, 8 GB de RAM e ausência de GPU dedicada; justifique dependências pesadas.
 
@@ -16,7 +16,7 @@ Use Python no processamento, com núcleo independente das interfaces e compartil
 
 Use Python >=3.12 e o ambiente `.venv/`. Instale as ferramentas com `python -m pip install -r requirements-dev.lock` e o pacote com `python -m pip install --no-build-isolation --no-deps -e .`. Use quatro espaços, nomes descritivos e Ruff, sem misturar reformatação com mudanças funcionais. Mantenha comandos e versões documentados no `README.md`.
 
-Trabalhe em tarefas pequenas, com critérios de aceitação explícitos. A meta inicial é entrada PDF/imagem, detecção das cinco linhas e localização de cabeças de notas em exemplos controlados. A etapa atual cobre também cabeças de notas e figuras simples em exercícios controlados; PDF e reconhecimento musical geral permanecem futuros.
+Trabalhe em tarefas pequenas, com critérios de aceitação explícitos. A meta inicial é entrada PDF/imagem, detecção das cinco linhas e localização de cabeças de notas em exemplos controlados. A etapa atual cobre cabeças de notas e figuras simples em exercícios controlados; a seleção e rasterização de páginas PDF são experimentais, mas o reconhecimento musical geral e a montagem automática de múltiplas páginas continuam futuros.
 
 ## Testes e precisão
 

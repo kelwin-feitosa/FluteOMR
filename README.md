@@ -6,11 +6,13 @@ exportações MSCZ e PDF musical dependerão de integração apropriada.
 
 ## Estado atual e limites
 
-O núcleo detecta pautas horizontais de cinco linhas em PNG/JPEG, agrupa sistemas
+O núcleo detecta pautas horizontais de cinco linhas em PNG/JPEG e em páginas
+PDF rasterizadas opcionalmente, agrupa sistemas
 quando há evidência geométrica e oferece um detector experimental de clave de sol.
 Uma CLI experimental infere semínimas/mínimas em um ou mais compassos controlados e exporta
-MusicXML. Há saída JSON, depuração e interfaces locais de revisão. Ainda não há
-conversão PDF, reconhecimento musical geral nem modelos de ML.
+MusicXML. Há saída JSON, depuração e interfaces locais de revisão. A importação
+PDF permite selecionar uma página para rasterização; ainda não há montagem
+multiplágina automática, reconhecimento musical geral nem modelos de ML.
 O algoritmo é próprio; OMRs existentes não substituem o núcleo.
 
 O alvo inicial são partituras limpas, digitalmente geradas, com uma pauta em clave
@@ -32,8 +34,9 @@ python -m pip install --no-build-isolation --no-deps -e .
 
 O lock fixa ferramentas, backend e dependências transitivas. A instalação requer
 acesso ao PyPI; nenhum serviço externo participa do processamento. Pillow 12.3.0
-é a única dependência de execução, para leitura e manipulação de imagens, sem
-NumPy, OpenCV ou GPU. Para atualizar ferramentas, altere os pins no
+é a única dependência obrigatória de execução, para imagens, sem NumPy, OpenCV
+ou GPU. Para renderizar PDFs, instale o extra opcional
+`python -m pip install -e '.[pdf]'` (PDFium). Para atualizar ferramentas, altere os pins no
 `pyproject.toml`, regenere o lock em ambiente limpo e execute as verificações.
 
 ## Execução e qualidade
@@ -91,6 +94,93 @@ Consulte também [`docs/api-contracts.md`](docs/api-contracts.md) para fronteira
 contratos experimentais e política de compatibilidade. O resumo de avaliação
 separa resultados `validated` e `source_authored` em `reference_quality`;
 uma referência marcada `validated` exige pacote de revisão verificável.
+
+## Avaliação de corpus com proteção contra vazamentos
+
+Para avaliar vários manifestos com proteção contra repetição de obras entre
+`development`, `validation` e `test`, use `tools.evaluate_corpus`.
+O padrão é avaliar **somente development**; exige `work_id` explícito e
+verifica **todos** os manifestos antes de abrir qualquer imagem.
+
+```bash
+python -m tools.evaluate_corpus \
+  --manifest tests/data/music_lab/sprint1d/development-manifest.json \
+  --manifest tests/data/music_lab/sprint1d/validation-manifest.json \
+  --images-dir outputs/sprint-1d/rendered \
+  --split development \
+  --report outputs/sprint-1d/corpus-development.json
+```
+
+As imagens de `outputs/sprint-1d/rendered` precisam ter sido produzidas
+segundo as instruções de Sprint 1D mais abaixo. Use outro relatório e
+`--split validation` para validação. `--split test` é uma ação explícita
+para avaliação final reservada; nunca ajuste algoritmos com seus resultados.
+Falhas de processamento permanecem contabilizadas, e a CLI retorna código 1.
+O resumo separa `source_authored` de `validated`, sem alegar avaliação
+humana. Detalhes em
+[`docs/decisions/0022-corpus-evaluation.md`](docs/decisions/0022-corpus-evaluation.md).
+
+## Importação de PDF — uma página por execução (experimental)
+
+O FluteOMR utiliza `pypdfium2`/**PDFium** apenas como rasterizador; detecção
+de símbolos e interpretação musical permanecem implementadas no projeto.
+Instale `python -m pip install -e '.[pdf]'` no ambiente local. O ambiente de
+desenvolvimento já inclui a dependência opcional para testar essa integração.
+
+```bash
+python -m tools.transcribe_page entrada.pdf \
+  --layout solo --clef treble --time 4/4 \
+  --page-number 2 --dpi 200 --instrument flute \
+  --report outputs/pagina2.json --output outputs/pagina2.musicxml
+```
+
+Use `--allow-clefless` **somente** quando souber que a pauta não contém clave
+impressa e desejar configurar a clave de sol manualmente. A fórmula 4/4
+continua configurada, não reconhecida da imagem.
+
+Em Python, `from fluteomr.pdf_io import pdf_page_count, load_pdf_page`.
+`pdf_page_count(path)` consulta o número de páginas e
+`load_pdf_page(path, page_number=1, dpi=200)` retorna uma imagem Pillow RGB,
+pronta para `transcribe_page`. Páginas são numeradas de 1 em diante.
+Os limites operacionais atuais são 128 MiB por PDF, 1000 páginas, 72–400 DPI
+e 20 milhões de pixels por página **antes da rasterização**. Reduza o DPI quando
+a página exceder esse limite. Nenhum PDF é armazenado remotamente.
+
+O relatório JSON registra nome, hash SHA-256, página e DPI. Uma interpretação
+musical incompleta preserva o JSON parcial, mas **bloqueia o MusicXML final**.
+Arquivo existente nunca é sobrescrito. Selecionar página PDF não implica
+converter todas as páginas ou inferir notas com precisão garantida. Para material
+não confiável, use um ambiente isolado: os limites de recursos não substituem
+um sandbox para a biblioteca nativa de PDF.
+
+A decisão e as dependências estão em
+[`docs/decisions/0020-pdf-raster-input.md`](docs/decisions/0020-pdf-raster-input.md).
+
+## Preparação de páginas reais para revisão musical
+
+A CLI abaixo **apenas rasteriza** uma página PDF para PNG e registra os hashes
+SHA-256, DPI, número da página e licença declarada pelo usuário em JSON.
+Ela não inventa transcrição nem declara validação humana.
+
+```bash
+python -m tools.extract_pdf_page partitura.pdf \
+  --page-number 1 --dpi 200 \
+  --output outputs/real/pagina-1.png \
+  --metadata outputs/real/pagina-1.json
+```
+
+Os arquivos são criados sem sobrescrever outros. `--source-url` e
+`--license-id` são campos opcionais declarados pelo usuário, não verificados
+automaticamente. Para gerar um pacote revisável, use
+`python -m tools.music_review prepare` depois de conferir o recorte e os
+limites de compasso; nenhuma confirmação humana é automática.
+
+Novos pacotes de revisão incluem `image_sha256` no manifesto. O validador
+compara hashes **declarados** entre manifestos e também impede que o manifesto
+e a revisão indiquem hashes divergentes. Isso não certifica a autenticidade
+de todos os arquivos ou a correção musical. Consulte
+[`docs/corpus-sources.md`](docs/corpus-sources.md) para critérios de licença,
+etapas de revisão e fontes candidatas.
 
 ## Demonstração local e API
 

@@ -21,5 +21,7 @@ def test_installed_distribution_has_expected_metadata():
 def test_core_has_only_image_runtime_dependency():
     requirements = metadata.requires("fluteomr") or []
 
-    runtime = [item for item in requirements if 'extra == "dev"' not in item]
+    runtime = [item for item in requirements if "extra ==" not in item]
     assert runtime == ["Pillow==12.3.0"]
+    pdf_extra = [item for item in requirements if 'extra == "pdf"' in item]
+    assert pdf_extra == ['pypdfium2==5.15.2; extra == "pdf"']

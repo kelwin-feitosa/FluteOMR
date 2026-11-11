@@ -137,6 +137,7 @@ def prepare_review(
                 "id": example_id,
                 "work_id": work_id or source.stem,
                 "image": image_path.name,
+                "image_sha256": review["image"]["sha256"],
                 "reference": "reference.musicxml" if reference else None,
                 "origin": "external_image_pending_human_review",
                 "source_category": "real_unannotated",
@@ -178,6 +179,12 @@ def verify_review(manifest_path: Path, example: dict) -> dict:
         or _sha(image) != review["image"]["sha256"]
     ):
         raise ValueError("hash da imagem divergente")
+    manifest_hash = example.get("image_sha256")
+    if manifest_hash is not None and (
+        not isinstance(manifest_hash, str)
+        or manifest_hash.lower() != review["image"]["sha256"]
+    ):
+        raise ValueError("hash da imagem divergente entre manifesto e revisão")
     with Image.open(image) as rendered:
         if list(rendered.size) != review["image"]["size"]:
             raise ValueError("dimensões divergentes")

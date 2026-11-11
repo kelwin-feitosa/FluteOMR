@@ -29,6 +29,12 @@ jobs:
         run: |
           python -m tools.benchmark_integrity tests/data/music_lab/*.json tests/data/music_lab/sprint1d/*-manifest.json
           python -m tools.benchmark_integrity --require-work-id tests/data/music_lab/sprint1d/development-manifest.json tests/data/music_lab/sprint1d/validation-manifest.json
+      - name: Baseline musical controlado (sem referência humana)
+        run: |
+          python -m tools.evaluate_corpus \
+            --manifest tests/data/music_lab/baseline-versioned-manifest.json \
+            --images-dir tests/data/music_lab/raster \
+            --split development
       - name: Verificar lint
         run: python -m ruff check .
       - name: Verificar formatação

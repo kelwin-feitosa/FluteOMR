@@ -10,7 +10,11 @@ from tools.compare_adaptive_probes import compare_files, compare_probe_reports
 def _probe(adaptive: bool) -> dict:
     resolved = 3 if adaptive else 2
     return {
+        "format_version": 2,
         "source_pdf": "source.pdf",
+        "source_pdf_sha256": "a" * 64,
+        "page_image_sha256": "b" * 64,
+        "page_image_size": [480, 215],
         "page_number": 1,
         "dpi": 200,
         "status": "diagnostic_only",
@@ -41,6 +45,8 @@ def test_coverage_delta_never_claims_music_accuracy():
     assert result["musical_accuracy"] == "not_evaluated"
     assert result["human_reviewed"] is False
     assert result["xml_export"] == "not_attempted"
+    assert result["source_pdf_sha256"] == "a" * 64
+    assert result["page_image_sha256"] == "b" * 64
 
 
 @pytest.mark.parametrize(
@@ -49,6 +55,10 @@ def test_coverage_delta_never_claims_music_accuracy():
         ("page_number", 2),
         ("dpi", 150),
         ("source_pdf", "different.pdf"),
+        ("source_pdf_sha256", "c" * 64),
+        ("page_image_sha256", "d" * 64),
+        ("page_image_size", [481, 215]),
+        ("format_version", 1),
         ("status", "processing_failed"),
         ("experimental_adaptive_secondary", False),
         ("musical_accuracy", 0.95),
@@ -84,3 +94,22 @@ def test_invalid_uncertainty_counts_rejected():
     }
     with pytest.raises(ValueError, match="diagnósticos"):
         compare_probe_reports(_probe(False), adaptive)
+
+@pytest.mark.parametrize(
+    ("field", "invalid"),
+    [
+        ("source_pdf_sha256", None),
+        ("source_pdf_sha256", "not-a-hash"),
+        ("page_image_sha256", "A" * 64),
+        ("page_image_size", [0, 215]),
+        ("page_image_size", [480, True]),
+        ("page_image_size", "480x215"),
+    ],
+)
+def test_rejects_missing_or_malformed_image_provenance(field, invalid):
+    baseline = _probe(False)
+    adaptive = _probe(True)
+    baseline[field] = invalid
+    adaptive[field] = invalid
+    with pytest.raises(ValueError):
+        compare_probe_reports(baseline, adaptive)

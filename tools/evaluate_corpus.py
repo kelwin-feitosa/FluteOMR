@@ -63,24 +63,32 @@ def evaluate_corpus(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--manifest", type=Path, action="append", required=True,
+        "--manifest",
+        type=Path,
+        action="append",
+        required=True,
         help="repita para validar todos os manifestos antes de avaliar",
     )
     parser.add_argument(
-        "--images-dir", type=Path,
+        "--images-dir",
+        type=Path,
         help="diretório comum das imagens; padrão: diretório de cada manifesto",
     )
     parser.add_argument(
-        "--split", action="append", choices=sorted(SPLITS),
+        "--split",
+        action="append",
+        choices=sorted(SPLITS),
         help="padrão: development; test exige seleção explícita",
     )
     parser.add_argument("--report", type=Path, help="arquivo JSON novo")
     parser.add_argument(
-        "--stop-on-error", action="store_true",
+        "--stop-on-error",
+        action="store_true",
         help="não prosseguir se uma imagem falhar",
     )
     parser.add_argument(
-        "--allow-legacy-work-id", action="store_true",
+        "--allow-legacy-work-id",
+        action="store_true",
         help="desativa exigência de work_id explícito; reduz proteção",
     )
     args = parser.parse_args()

@@ -29,12 +29,23 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends lilypond
           python -m pip install --disable-pip-version-check "ly-to-musicxml==0.1.1"
           lilypond --version
+      - name: Obter módulo XML auxiliar de python-ly em commit fixado
+        run: |
+          set -euo pipefail
+          export_dir="$RUNNER_TEMP/ly-xml-source"
+          mkdir -p "$export_dir"
+          git -C "$export_dir" init -q
+          git -C "$export_dir" remote add origin https://github.com/xvb8/ly-to-musicxml.git
+          git -C "$export_dir" fetch --depth 1 origin 5adbd4d9864ad18368ecb2e4909782ab4bbfd258
+          git -C "$export_dir" checkout --detach -q FETCH_HEAD
+          test -f "$export_dir/python-ly/ly/xml/xml-export.ily"
+          cp tests/data/real_scores/mutopia-bwv1013.ly "$export_dir/source.ly"
       - name: Converter fonte musical independente do FluteOMR
         run: |
           mkdir -p outputs/reference_candidates
           ly-to-musicxml \
-            tests/data/real_scores/mutopia-bwv1013.ly \
-            -o outputs/reference_candidates/bwv1013.musicxml \
+            "$RUNNER_TEMP/ly-xml-source/source.ly" \
+            -o "$GITHUB_WORKSPACE/outputs/reference_candidates/bwv1013.musicxml" \
             --lilypond-bin "$(command -v lilypond)"
       - name: Inventariar e classificar candidato NÃO verificado por músico
         run: |

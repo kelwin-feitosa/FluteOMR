@@ -151,3 +151,45 @@ def test_invalid_fifths_is_rejected_not_ignored():
     xml = _notation_xml([[("F", 4, 2, None)]], key="oops")
     with pytest.raises(ValueError):
         parse_reference(xml)
+
+
+@pytest.mark.parametrize(
+    ("notation", "reason"),
+    [
+        ("accidental", "chromatic_alteration"),
+        ("dot", "augmentation_dot"),
+        ("tuplet", "tuplet"),
+        ("unsupported_type", "unsupported_note_type"),
+    ],
+)
+def test_unrecognized_notation_cannot_inflate_exact_pitch_rhythm_score(
+    notation, reason
+):
+    root = ET.fromstring(_notation_xml([[("F", 4, 2, None)]]))
+    note = root.find("part/measure/note")
+    if notation == "accidental":
+        ET.SubElement(note, "accidental").text = "natural"
+    elif notation == "dot":
+        ET.SubElement(note, "dot")
+    elif notation == "tuplet":
+        change = ET.SubElement(note, "time-modification")
+        ET.SubElement(change, "actual-notes").text = "3"
+        ET.SubElement(change, "normal-notes").text = "2"
+    else:
+        ET.SubElement(note, "type").text = "16th"
+    reference = ET.tostring(root)
+    report = evaluate_music(reference, _score([[("F", 4, "quarter")]]))
+    assert report["status"] == "partial"
+    assert report["matches"] == 0
+    assert report["skipped_reference_events"] == 1
+    assert report["unsupported"][reason] == 1
+    assert report["measure_results"][0]["status"] == "unevaluable"
+
+
+def test_plain_note_without_extra_notation_remains_evaluable():
+    report = evaluate_music(
+        _notation_xml([[("F", 4, 2, None)]]),
+        _score([[("F", 4, "quarter")]]),
+    )
+    assert report["status"] == "evaluated"
+    assert report["matches"] == 1

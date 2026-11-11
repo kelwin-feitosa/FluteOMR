@@ -130,4 +130,5 @@ def test_probe_adaptive_secondary_is_explicit_and_never_default(tmp_path, monkey
     assert adaptive["experimental_adaptive_secondary"] is True
     assert "adaptive_secondary" not in seen[0]
     assert seen[1]["adaptive_secondary"] is True
-    assert ordinary["musical_accuracy"] == adaptive["musical_accuracy"] == "not_evaluated"
+    assert ordinary["musical_accuracy"] == "not_evaluated"
+    assert adaptive["musical_accuracy"] == "not_evaluated"

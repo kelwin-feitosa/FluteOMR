@@ -264,6 +264,26 @@ cobertura de software não equivale à precisão em partituras publicadas.
 Consulte [ADR 0026](docs/decisions/0026-explicit-musicxml-beam-levels.md)
 e [ADR 0027](docs/decisions/0027-partial-secondary-beam-geometry.md).
 
+## Revisão de feixes inconclusivos pelo flautista
+
+Para investigar sem alterar arbitrariamente o reconhecedor, o projeto
+gera recortes de imagem **ainda não revisados**, separados por tipo de
+incerteza, com hashes de origem e campos de correção em branco:
+
+```bash
+python -m tools.prepare_rhythm_review \
+  outputs/real_scores/mutopia-bwv1013/source.pdf \
+  --page 1 --dpi 200 --max-cases 12 \
+  --out-dir outputs/rhythm_review
+```
+
+A pasta contém `case-XX.png`, `review-manifest.json` e
+`review-template.csv`. O workflow `real-rhythm-review.yml` prepara
+esses arquivos a partir do PDF público e disponibiliza um artefato
+temporário no GitHub Actions. Os recortes **não** fornecem ground
+truth automaticamente. Veja [ADR 0028](
+docs/decisions/0028-rhythm-review-packet.md).
+
 ## Referências MusicXML derivadas de LilyPond (não validadas)
 
 Para investigar a referência musical da edição Mutopia BWV 1013, o workflow

@@ -52,12 +52,17 @@ jobs:
       - name: Diagnóstico musical sem exportação não validada (BWV 1013)
         run: |
           set +e
-          python -m tools.real_music_probe \
+          python -m cProfile -s cumulative -m tools.real_music_probe \
             outputs/real_scores/mutopia-bwv1013/source.pdf \
             --page 1 --dpi 200 \
-            --report outputs/real_scores/mutopia-bwv1013/music-probe.json
+            --report outputs/real_scores/mutopia-bwv1013/music-probe.json \
+            > outputs/real_scores/mutopia-bwv1013/cpu-profile.txt
           status=$?
           set -e
+          echo "=== Diagnóstico musical ==="
+          cat outputs/real_scores/mutopia-bwv1013/music-probe.json
+          echo "=== Funções de maior tempo cumulativo ==="
+          head -n 75 outputs/real_scores/mutopia-bwv1013/cpu-profile.txt
           # 1 = falha de transcrição documentada, não erro da aquisição.
           if [ "$status" -ne 0 ] && [ "$status" -ne 1 ]; then exit "$status"; fi
       - name: Preservar PDFs publicados e evidências privadas temporárias

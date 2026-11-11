@@ -317,10 +317,7 @@ def detect_staffs(
     # tom mais frequente recupera essas bordas sem fixar intensidade em pixels.
     analysis_threshold = max(
         threshold,
-        round(
-            threshold
-            + config.contrast_adjust_fraction * (background - threshold)
-        ),
+        round(threshold + config.contrast_adjust_fraction * (background - threshold)),
     )
     pixels = gray.tobytes()
     binary = pixels.translate(bytes(int(i <= analysis_threshold) for i in range(256)))

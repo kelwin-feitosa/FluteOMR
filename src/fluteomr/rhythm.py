@@ -242,6 +242,7 @@ def detect_rhythm_evidence(
     accepted_double: set[str] = set()
     accepted_mixed: set[str] = set()
     uncertain_double: set[str] = set()
+    uncertain_reason: dict[str, str] = {}
     for stem, _ in linked:
         if stem.id in groups or not connections[stem.id]:
             continue
@@ -257,12 +258,18 @@ def detect_rhythm_evidence(
         secondary_present = any(secondary_connections[member] for member in group)
         if group & ambiguous_secondary:
             uncertain_double.update(group)
+            uncertain_reason.update(
+                (member, "secondary_stripe_ambiguous") for member in group
+            )
         elif secondary_present:
             # Um segundo feixe só é suficiente para as hastes que toca.
             # Os outros pares devem estar CLARAMENTE sem uma segunda linha.
             # Traços fracos podem ser hooks, interrupções ou imagem degradada.
             if group & weak_secondary:
                 uncertain_double.update(group)
+                uncertain_reason.update(
+                    (member, "weak_secondary_stripe") for member in group
+                )
             elif all(
                 secondary_connections[member] == connections[member]
                 and 1 <= len(connections[member]) <= 2
@@ -277,6 +284,9 @@ def detect_rhythm_evidence(
                 accepted_mixed.update(group)
             else:
                 uncertain_double.update(group)
+                uncertain_reason.update(
+                    (member, "secondary_group_inconsistent") for member in group
+                )
     evidence = []
     for index, (stem, head) in enumerate(linked):
         tip = tips[stem.id]
@@ -368,7 +378,9 @@ def detect_rhythm_evidence(
                         "double_beam",
                         region,
                         "inconclusive",
-                        reason="partial_or_ambiguous_double_beam",
+                        reason=uncertain_reason.get(
+                            stem.id, "partial_or_ambiguous_double_beam"
+                        ),
                     )
                 )
             else:

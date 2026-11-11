@@ -139,7 +139,11 @@ class Measure:
             elif note.beam in ("continue", "end"):
                 if not beam_open:
                     problems.append(f"beam_without_begin:note={index}")
-                elif kind is not None and active_kind is not None and kind != active_kind:
+                elif (
+                    kind is not None
+                    and active_kind is not None
+                    and kind != active_kind
+                ):
                     # Um grupo misto exigiria feixes secundários parciais.
                     # O modelo atual preserva somente grupos homogêneos.
                     problems.append(f"mixed_beam_durations:note={index}")

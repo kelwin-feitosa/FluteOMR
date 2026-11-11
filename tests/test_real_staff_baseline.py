@@ -39,7 +39,9 @@ def test_staff_baseline_has_no_music_accuracy_without_ground_truth(
     assert len(result["samples"]) == 4
     assert all(row["staff_count_detected"] == 1 for row in result["samples"])
     assert all(row["reference_staff_count"] is None for row in result["samples"])
-    assert all(row["musical_event_accuracy"] == "not_evaluated" for row in result["samples"])
+    assert all(
+        row["musical_event_accuracy"] == "not_evaluated" for row in result["samples"]
+    )
     assert len(list(preview.glob("*.png"))) == 4
     with pytest.raises(FileExistsError):
         real_staff_baseline.benchmark_pdf_staffs(

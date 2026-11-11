@@ -12,6 +12,7 @@ dependencies = ["Pillow==12.3.0"]
 
 [project.optional-dependencies]
 dev = ["pytest==9.1.1", "ruff==0.17.0"]
+pdf = ["pypdfium2==5.15.2"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

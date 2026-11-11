@@ -70,9 +70,7 @@ def test_invalid_secondary_level_rejects_entire_connected_run():
     result = _reject_incomplete_beam_runs(notes)
     assert all(note.duration is None for note in result)
     assert all(note.beam_levels == () for note in result)
-    assert all(
-        "invalid_beam_group_rejected" in note.diagnostics for note in result
-    )
+    assert all("invalid_beam_group_rejected" in note.diagnostics for note in result)
 
 
 def test_unbeamed_events_are_untouched():

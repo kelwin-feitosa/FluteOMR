@@ -8,8 +8,8 @@ as renderizações de uma obra (fonte, DPI, recorte ou transposição).
 
 import argparse
 import json
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 SPLITS = frozenset({"development", "validation", "test"})
 
@@ -110,7 +110,8 @@ def validate_manifests(
         "by_split": counts,
         "status": "metadata_consistent",
         "caveat": (
-            "A separação depende de work_id identificar todas as variantes da mesma obra."
+            "A separação depende de work_id identificar todas as variantes "
+            "da mesma obra."
         ),
     }
 
@@ -121,7 +122,10 @@ def main() -> None:
     parser.add_argument(
         "--require-work-id",
         action="store_true",
-        help="Recusar exemplos sem work_id explícito (recomendado para avaliação final)",
+        help=(
+            "Recusar exemplos sem work_id explícito "
+            "(recomendado para avaliação final)"
+        ),
     )
     args = parser.parse_args()
     try:

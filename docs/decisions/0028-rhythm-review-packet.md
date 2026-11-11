@@ -67,7 +67,13 @@ referências independentes confirmadas.
 - Estudar posições verticais de dois feixes por perfil de tinta, pois
   a separação geométrica real pode divergir do offset fixo estimado.
 
-## Revisão musical humana parcial — 11/11/2026 (casos 9–12)
+## Revisão musical humana relatada — 11/11/2026 (casos 1–12)
+
+O revisor esclareceu que examinou **todos os 12 casos**. Os **casos 1–8 foram considerados corretos como apresentados**, sem correções apontadas. Esta é uma **aprovação visual da amostra exibida**, não a transcrição individual de cada nota ou confirmação de ritmos: no manifesto original, os 12 `proposed_duration` estão nulos. Registrados com `human_visual_approved_as_shown` em [`docs/reviews/bwv1013-page1-observations.csv`](../reviews/bwv1013-page1-observations.csv); campos de altura confirmada permanecem vazios para não atribuir rótulos que o revisor não transcreveu separadamente.
+
+Nos **casos 9–12**, o revisor identificou problemas e forneceu as correções descritas abaixo. **Contagem descritiva desta amostra de 12: oito aprovações visuais e quatro problemas relatados**, sem extrapolar a taxa para outras notas, durações ou páginas.
+
+### Observações dos casos 9–12
 
 Observações fornecidas diretamente pelo revisor flautista formado na EMB.
 Estão registradas em [`docs/reviews/bwv1013-page1-observations.csv`](../reviews/bwv1013-page1-observations.csv), vinculadas aos `review_id` originais da página 1 (200 DPI, SHA-256 `f73c6e478af78237ebf0cf2e9842cf111937e76e6e5e018bb85e5be729a31d47`).

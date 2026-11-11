@@ -23,12 +23,19 @@ jobs:
       - uses: actions/setup-python@v7.0.0
         with:
           python-version: "3.12"
-      - name: Instalar LilyPond público e conversor MIT isolado
+      - name: Obter runtime oficial LilyPond 2.26.0 e conversor MIT isolado
         run: |
-          sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends lilypond
+          set -euo pipefail
+          url="https://gitlab.com/lilypond/lilypond/-/releases/v2.26.0/downloads/lilypond-2.26.0-linux-x86_64.tar.gz"
+          archive="$RUNNER_TEMP/lilypond-2.26.0-linux-x86_64.tar.gz"
+          curl -fL --retry 3 --retry-delay 2 --connect-timeout 30 --max-time 180 "$url" -o "$archive"
+          sha256sum "$archive"
+          mkdir -p "$RUNNER_TEMP/lilypond-runtime"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/lilypond-runtime"
+          binary="$RUNNER_TEMP/lilypond-runtime/lilypond-2.26.0/bin/lilypond"
+          test -x "$binary"
+          "$binary" --version | head -n 1 | grep -F "2.26.0"
           python -m pip install --disable-pip-version-check "ly-to-musicxml==0.1.1"
-          lilypond --version
       - name: Obter módulo XML auxiliar de python-ly em commit fixado
         run: |
           set -euo pipefail
@@ -46,7 +53,7 @@ jobs:
           ly-to-musicxml \
             "$RUNNER_TEMP/ly-xml-source/source.ly" \
             -o "$GITHUB_WORKSPACE/outputs/reference_candidates/bwv1013.musicxml" \
-            --lilypond-bin "$(command -v lilypond)"
+            --lilypond-bin "$RUNNER_TEMP/lilypond-runtime/lilypond-2.26.0/bin/lilypond"
       - name: Inventariar e classificar candidato NÃO verificado por músico
         run: |
           python -m tools.inspect_lilypond_candidates \

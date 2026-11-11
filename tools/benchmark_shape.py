@@ -76,15 +76,9 @@ def benchmark_shape(
         for degree in range(-4, 13)
         for y in range(
             round(
-                staff.lines[-1].y
-                - degree * staff.spacing / 2
-                - 0.12 * staff.spacing
+                staff.lines[-1].y - degree * staff.spacing / 2 - 0.12 * staff.spacing
             ),
-            round(
-                staff.lines[-1].y
-                - degree * staff.spacing / 2
-                + 0.12 * staff.spacing
-            )
+            round(staff.lines[-1].y - degree * staff.spacing / 2 + 0.12 * staff.spacing)
             + 1,
         )
         for x in range(left, right, step)
@@ -106,15 +100,24 @@ def benchmark_shape(
     for _ in range(repeats):
         began = perf_counter()
         original = [
-            _shape(ink, *args, x, y, rx, ry, core, rim, sides)
-            for x, y in coordinates
+            _shape(ink, *args, x, y, rx, ry, core, rim, sides) for x, y in coordinates
         ]
         baseline_seconds.append(perf_counter() - began)
         began = perf_counter()
         revised = [
             _shape_from_prefix(
-                prefix, *args, x, y, rx, ry, core, rim, sides,
-                core_spans, rim_spans, side_spans,
+                prefix,
+                *args,
+                x,
+                y,
+                rx,
+                ry,
+                core,
+                rim,
+                sides,
+                core_spans,
+                rim_spans,
+                side_spans,
             )
             for x, y in coordinates
         ]
@@ -165,8 +168,12 @@ def main() -> None:
     args = parser.parse_args()
     try:
         result = benchmark_shape(
-            args.pdf, page=args.page, dpi=args.dpi, step=args.step,
-            repeats=args.repeats, report=args.report,
+            args.pdf,
+            page=args.page,
+            dpi=args.dpi,
+            step=args.step,
+            repeats=args.repeats,
+            report=args.report,
         )
     except (OSError, ValueError, TypeError) as exc:
         parser.exit(2, f"{exc}\n")

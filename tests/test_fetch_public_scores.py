@@ -6,11 +6,7 @@ import json
 
 import pytest
 
-from tools.fetch_public_scores import (
-    CorpusSourceError,
-    download_score,
-    load_catalog,
-)
+from tools.fetch_public_scores import CorpusSourceError, download_score, load_catalog
 
 
 PDF_URL = (

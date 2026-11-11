@@ -1,0 +1,51 @@
+name: Corpus público real — geometria de pautas
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/real-corpus.yml"
+      - "tools/fetch_public_scores.py"
+      - "tools/real_staff_baseline.py"
+      - "tests/data/real_scores/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  published-score:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Instalar as dependências do FluteOMR
+        run: |
+          python -m pip install -r requirements-dev.lock
+          python -m pip install --no-build-isolation --no-deps -e .
+      - name: Obter partitura original de flauta em domínio público
+        run: |
+          python -m tools.fetch_public_scores \
+            --catalog tests/data/real_scores/sources.json \
+            --id mutopia-bwv1013 \
+            --out-dir outputs/real_scores
+      - name: Medir geometria de páginas publicadas (sem referência de notas)
+        run: |
+          python -m tools.real_staff_baseline \
+            outputs/real_scores/mutopia-bwv1013/source.pdf \
+            --page 1 --page 2 \
+            --dpi 150 --dpi 200 \
+            --report outputs/real_scores/mutopia-bwv1013/geometry.json \
+            --preview-dir outputs/real_scores/mutopia-bwv1013/previews
+      - name: Preservar corpus baixado e evidências da execução
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-bwv1013-geometry
+          path: outputs/real_scores/mutopia-bwv1013/
+          retention-days: 7
+          if-no-files-found: warn

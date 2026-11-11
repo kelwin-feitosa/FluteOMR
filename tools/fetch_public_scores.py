@@ -183,7 +183,8 @@ def download_score(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--catalog", type=Path,
+        "--catalog",
+        type=Path,
         default=Path("tests/data/real_scores/sources.json"),
     )
     parser.add_argument("--id", action="append", required=True)

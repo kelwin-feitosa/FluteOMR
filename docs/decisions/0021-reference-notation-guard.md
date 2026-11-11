@@ -25,6 +25,10 @@ Na leitura da referência MusicXML, acompanhar o estado de `key`, `time` e
 - Clave explicitamente diferente de G na linha 2: `clef`.
 - Alterações individuais, pausas, ligações, várias vozes e movimentações de
   cursor continuam seguindo as regras conservadoras já existentes.
+- Acidentes de cortesia (inclusive `natural` sem `<alter>` explícito),
+  pontos de aumento, quiálteras e tipos de nota fora do subconjunto
+  `eighth/quarter/half` são marcados não suportados, evitando acertos
+  artificiais em notas musicalmente distintas ou com notação incompleta.
 
 A mudança **não tenta inferir uma armadura ou transpor notas**. O objetivo é
 evitar pontuação falsamente alta: compassos não suportados passam a ser

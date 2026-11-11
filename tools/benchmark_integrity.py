@@ -122,10 +122,7 @@ def main() -> None:
     parser.add_argument(
         "--require-work-id",
         action="store_true",
-        help=(
-            "Recusar exemplos sem work_id explícito "
-            "(recomendado para avaliação final)"
-        ),
+        help="Exigir work_id explícito (para avaliação final)",
     )
     args = parser.parse_args()
     try:

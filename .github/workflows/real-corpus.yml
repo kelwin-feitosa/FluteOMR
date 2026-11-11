@@ -49,6 +49,12 @@ jobs:
             --dpi 150 --dpi 200 --dpi 300 \
             --report outputs/real_scores/mutopia-bwv1031/geometry.json \
             --preview-dir outputs/real_scores/mutopia-bwv1031/previews
+      - name: A/B exato no PDF publicado — _shape vs prefixos
+        run: |
+          python -m tools.benchmark_shape \
+            outputs/real_scores/mutopia-bwv1013/source.pdf \
+            --page 1 --dpi 200 --step 4 --repeats 2 \
+            --report outputs/real_scores/mutopia-bwv1013/shape-ab.json
       - name: Diagnóstico musical sem exportação não validada (BWV 1013)
         run: |
           set +e

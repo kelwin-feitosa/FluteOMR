@@ -63,9 +63,7 @@ def test_source_derived_candidate_must_be_unreviewed_and_traceable(tmp_path):
         ),
         ("<score", "parseável"),
         (
-            SOURCE_XML.replace(
-                "<duration>1</duration>", "<duration>-1</duration>", 1
-            ),
+            SOURCE_XML.replace("<duration>1</duration>", "<duration>-1</duration>", 1),
             "duração numérica inválida",
         ),
     ],
@@ -84,9 +82,10 @@ def test_inspector_collects_extra_movement_files(tmp_path):
     (extra / "book-01-score-02.musicxml").write_text(SOURCE_XML)
     result = inspect_source_candidates(source, folder, report)
     assert result["candidate_count"] == 2
-    assert {
-        row["file"] for row in result["candidates"]
-    } == {"movement.musicxml", "movement.exports/book-01-score-02.musicxml"}
+    assert {row["file"] for row in result["candidates"]} == {
+        "movement.musicxml",
+        "movement.exports/book-01-score-02.musicxml",
+    }
 
 
 def test_empty_directory_does_not_produce_fake_ground_truth(tmp_path):
@@ -135,9 +134,7 @@ def _prefix_file(source, tmp_path):
 def test_verified_prefix_is_not_mistaken_for_full_score_alignment(tmp_path):
     source, folder, report = _inputs(tmp_path)
     guard = _prefix_file(source, tmp_path)
-    result = inspect_source_candidates(
-        source, folder, report, expected_prefix=guard
-    )
+    result = inspect_source_candidates(source, folder, report, expected_prefix=guard)
     assert result["reference_quality"] == "source_derived_unreviewed"
     assert result["source_prefix_alignment"] == "prefix_only"
     assert result["usable_as_music_ground_truth"] is False
@@ -151,9 +148,7 @@ def test_missing_source_rest_rejects_candidate_even_if_xml_valid(tmp_path):
     )
     source, folder, report = _inputs(tmp_path, bad_xml)
     guard = _prefix_file(source, tmp_path)
-    result = inspect_source_candidates(
-        source, folder, report, expected_prefix=guard
-    )
+    result = inspect_source_candidates(source, folder, report, expected_prefix=guard)
     assert result["reference_quality"] == "rejected_source_prefix_mismatch"
     assert result["source_prefix_alignment"] == "mismatch"
     problems = result["candidates"][0]["source_prefix_check"]["mismatches"]

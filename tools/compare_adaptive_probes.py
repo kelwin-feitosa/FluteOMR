@@ -40,6 +40,19 @@ def compare_probe_reports(baseline: dict, adaptive: dict) -> dict:
         unresolved = _count(report, "unresolved_duration_events")
         if resolved + unresolved != events:
             raise ValueError(f"{label}: contagens inconsistentes")
+        kinds = report.get("resolved_duration_kind_counts")
+        if not isinstance(kinds, dict):
+            raise ValueError(f"{label}: contagem por duração ausente")
+        if any(
+            not isinstance(name, str)
+            or not name
+            or type(number) is not int
+            or number < 0
+            for name, number in kinds.items()
+        ):
+            raise ValueError(f"{label}: contagem por duração inválida")
+        if sum(kinds.values()) != resolved:
+            raise ValueError(f"{label}: soma de tipos rítmicos incompatível")
         _count(report, "predicted_double_beam_sixteenths")
         _count(report, "confirmed_mixed_beam_note_count")
         if not isinstance(report.get("unresolved_duration_diagnostic_counts"), dict):
@@ -88,6 +101,16 @@ def compare_probe_reports(baseline: dict, adaptive: dict) -> dict:
         }
         for name in metrics
     }
+    original_kinds = baseline["resolved_duration_kind_counts"]
+    adaptive_kinds = adaptive["resolved_duration_kind_counts"]
+    kind_changes = {
+        name: {
+            "baseline": original_kinds.get(name, 0),
+            "adaptive": adaptive_kinds.get(name, 0),
+            "delta": adaptive_kinds.get(name, 0) - original_kinds.get(name, 0),
+        }
+        for name in sorted(set(original_kinds) | set(adaptive_kinds))
+    }
     baseline_reasons = baseline["unresolved_duration_diagnostic_counts"]
     adaptive_reasons = adaptive["unresolved_duration_diagnostic_counts"]
     reasons = {}
@@ -108,6 +131,7 @@ def compare_probe_reports(baseline: dict, adaptive: dict) -> dict:
         "page_number": baseline["page_number"],
         "dpi": baseline["dpi"],
         "coverage_comparison": changes,
+        "resolved_duration_kind_comparison": kind_changes,
         "unresolved_diagnostic_comparison": reasons,
         "musical_accuracy": "not_evaluated",
         "human_reviewed": False,

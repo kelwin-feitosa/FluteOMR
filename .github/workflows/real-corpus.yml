@@ -1,4 +1,4 @@
-name: Corpus público real — geometria de pautas
+name: Corpus público real — geometria e ritmo
 
 on:
   pull_request:
@@ -7,6 +7,12 @@ on:
       - "tools/fetch_public_scores.py"
       - "tools/real_staff_baseline.py"
       - "tests/data/real_scores/**"
+      - "src/fluteomr/rhythm.py"
+      - "src/fluteomr/transcription.py"
+      - "src/fluteomr/music.py"
+      - "src/fluteomr/musicxml.py"
+      - "tools/real_music_probe.py"
+      - "tests/test_sixteenths.py"
   workflow_dispatch:
 
 permissions:

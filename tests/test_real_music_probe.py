@@ -104,3 +104,30 @@ def test_real_probe_records_transcription_failure_without_fabricating_accuracy(
     assert result["error"] == "clave incerta"
     assert result["musical_accuracy"] == "not_evaluated"
     assert result["xml_export"] == "not_attempted"
+
+
+def test_probe_adaptive_secondary_is_explicit_and_never_default(tmp_path, monkeypatch):
+    seen = []
+    monkeypatch.setattr(
+        real_music_probe,
+        "load_pdf_page",
+        lambda *_args, **_kwargs: Image.new("RGB", (160, 120), "white"),
+    )
+
+    def fake_page(*_args, **kwargs):
+        seen.append(kwargs)
+        return SimpleNamespace(
+            score=_score_with_uncertain_duration(),
+            staff_results=({"status": "incomplete"},),
+        )
+
+    monkeypatch.setattr(real_music_probe, "transcribe_page", fake_page)
+    ordinary = real_music_probe.probe_pdf(tmp_path / "published.pdf")
+    adaptive = real_music_probe.probe_pdf(
+        tmp_path / "published.pdf", adaptive_secondary=True
+    )
+    assert ordinary["experimental_adaptive_secondary"] is False
+    assert adaptive["experimental_adaptive_secondary"] is True
+    assert "adaptive_secondary" not in seen[0]
+    assert seen[1]["adaptive_secondary"] is True
+    assert ordinary["musical_accuracy"] == adaptive["musical_accuracy"] == "not_evaluated"

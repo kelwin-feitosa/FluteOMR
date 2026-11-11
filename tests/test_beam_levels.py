@@ -189,11 +189,17 @@ def test_legacy_complete_sixteenths_still_write_both_levels():
     )
     measure = Measure(1, notes, TimeSignature(1, 4, "configuration"), "user")
     score = MusicScore(
-        (MusicPart("P1", "Flute", "configuration", (0,), Clef("treble", "user"), (measure,)),)
+        (
+            MusicPart(
+                "P1", "Flute", "configuration", (0,), Clef("treble", "user"), (measure,)
+            ),
+        )
     )
     assert score.issues() == ()
     root = ET.fromstring(to_musicxml(score))
-    assert [el.text for el in root.findall("./part/measure/note/beam[@number='2']")] == [
+    assert [
+        el.text for el in root.findall("./part/measure/note/beam[@number='2']")
+    ] == [
         "begin",
         "continue",
         "continue",

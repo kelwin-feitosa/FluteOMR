@@ -114,3 +114,29 @@ somente em `workflow_dispatch` e é `continue-on-error`.
 A revisão de recortes anotados é feita em workflow separado. O resultado
 experimental em PR deve ser avaliado nos logs; não afirmar que foi
 publicado um artefato ZIP se a finalização falhar.
+
+## Verificação após sanear os grupos musicalmente inválidos
+
+O commit `a77f489c` passou os workflows de qualidade e de corpus público:
+[GitHub Actions 43100945246](https://github.com/kelwin-feitosa/FluteOMR/actions/runs/43100945246).
+A nova proteção opt-in valida grupos de feixes após segmentar por
+compasso e torna inconclusivas as notas em grupos que não possuem sequência
+estruturalmente fechada de níveis de feixe.
+
+| DPI | Durações padrão | Durações adaptativas válidas | Eventos conservadoramente rejeitados | Problemas padrão | Problemas adaptativos |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 150 | 140/463 | 283/463 | 27 | 52 | 52 |
+| 200 | 82/412 | 242/412 | 38 | 39 | 39 |
+
+Em 200 DPI, o experimento **antes da proteção** havia atribuído 280
+durações; a proteção rejeitou 38 durações sustentadas por grupos de feixes
+inconsistentes. A redução dos problemas relatados não valida as durações
+restantes: as contagens são propostas de um detector, nunca acertos
+comparados à fonte humana. O relatório também mede eventuais diferenças
+por resolução; não comparar 150 e 200 DPI como se tivessem o mesmo conjunto
+de eventos.
+
+A amostra de 12 recortes do PR #11 foi inspecionada visualmente para
+triagem, mas o `review-template.csv` continua sem anotações humanas.
+O modo adaptativo segue desativado por padrão, sem exportação musical
+definitiva do corpus.

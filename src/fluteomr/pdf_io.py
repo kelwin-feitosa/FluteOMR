@@ -83,12 +83,7 @@ def load_pdf_page(
         try:
             width, height = page.get_size()
             scale = dpi / 72
-            if (
-                not isfinite(width)
-                or not isfinite(height)
-                or width <= 0
-                or height <= 0
-            ):
+            if not isfinite(width) or not isfinite(height) or width <= 0 or height <= 0:
                 raise PdfInputError("dimensões da página PDF inválidas")
             pixels = ceil(width * scale) * ceil(height * scale)
             if pixels > MAX_PIXELS:

@@ -9,6 +9,7 @@ from fluteomr.document import transcribe_page
 from fluteomr.image_io import load_image
 from fluteomr.music import Instrument
 from fluteomr.musicxml import to_musicxml
+from fluteomr.pdf_io import load_pdf_page
 
 
 def main() -> None:
@@ -18,6 +19,9 @@ def main() -> None:
     parser.add_argument("--clef", choices=["treble"], required=True, help="configurada")
     parser.add_argument("--time", choices=["4/4"], required=True, help="configurado")
     parser.add_argument("--page-number", type=int, default=1)
+    parser.add_argument(
+        "--dpi", type=int, default=200, help="resolução para PDF (72–400 DPI)"
+    )
     parser.add_argument("--instrument", choices=["flute"])
     parser.add_argument(
         "--allow-clefless",
@@ -40,8 +44,14 @@ def main() -> None:
     if args.output and args.output.resolve() == args.report.resolve():
         parser.error("JSON e MusicXML exigem caminhos distintos")
     try:
+        is_pdf = args.image.suffix.lower() == ".pdf"
+        image = (
+            load_pdf_page(args.image, page_number=args.page_number, dpi=args.dpi)
+            if is_pdf
+            else load_image(args.image)
+        )
         result = transcribe_page(
-            load_image(args.image),
+            image,
             layout=args.layout,
             page_number=args.page_number,
             allow_clefless=args.allow_clefless,
@@ -52,7 +62,11 @@ def main() -> None:
         report["source"] = {
             "image": args.image.name,
             "sha256": hashlib.sha256(args.image.read_bytes()).hexdigest(),
+            "format": "pdf" if is_pdf else "raster",
+            "page_number": args.page_number,
         }
+        if is_pdf:
+            report["source"]["dpi"] = args.dpi
         xml = None
         try:
             xml = to_musicxml(result.score)

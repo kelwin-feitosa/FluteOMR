@@ -6,7 +6,12 @@ import json
 
 import pytest
 
-from tools.fetch_public_scores import CorpusSourceError, download_score, load_catalog
+from tools.fetch_public_scores import (
+    CorpusSourceError,
+    _RestrictedRedirect,
+    download_score,
+    load_catalog,
+)
 
 
 PDF_URL = (
@@ -141,3 +146,14 @@ def test_catalog_valid_and_rejects_duplicate_ids(tmp_path):
     path.write_text(json.dumps(data))
     with pytest.raises(CorpusSourceError, match="id duplicado"):
         load_catalog(path)
+
+
+def test_redirect_handler_blocks_cross_domain_before_following():
+    from urllib.request import Request
+
+    handler = _RestrictedRedirect()
+    request = Request(PDF_URL)
+    with pytest.raises(CorpusSourceError, match="hosts aprovados"):
+        handler.redirect_request(
+            request, None, 302, "Found", {}, "https://127.0.0.1/private.pdf"
+        )

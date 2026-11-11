@@ -44,6 +44,7 @@ def transcribe_page(
     allow_clefless: bool = False,
     instrument: Instrument | None = None,
     leading_spaces: float = 0,
+    adaptive_secondary: bool = False,
 ) -> PageTranscription:
     """Junta pautas em ordem somente sob a hipótese solo fornecida pelo usuário.
 
@@ -110,12 +111,14 @@ def transcribe_page(
                     bottom=staff.region.bottom - y0,
                 ),
             )
+            kwargs = {"content_left": left, "content_right": right}
+            if adaptive_secondary:
+                kwargs["adaptive_secondary"] = True
             analysis = transcribe_staff_measures(
                 image.crop((0, y0, image.width, y1)),
                 local,
                 detection.threshold,
-                content_left=left,
-                content_right=right,
+                **kwargs,
             )
 
             numbers = []

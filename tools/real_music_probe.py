@@ -51,9 +51,7 @@ def probe_pdf(
         problems = result.score.issues()
         unknown_durations = [note for note in notes if note.duration is None]
         evidence_counts = Counter(
-            diagnostic
-            for note in unknown_durations
-            for diagnostic in note.diagnostics
+            diagnostic for note in unknown_durations for diagnostic in note.diagnostics
         )
         payload = {
             "format_version": 1,

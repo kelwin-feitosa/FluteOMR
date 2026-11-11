@@ -129,6 +129,8 @@ def build_review_packet(
             )
         )
     chosen = chosen[:max_cases]
+    with source.open("rb") as stream:
+        source_hash = hashlib.file_digest(stream, "sha256").hexdigest()
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(
         prefix=".rhythm-review-", dir=destination.parent
@@ -159,7 +161,10 @@ def build_review_packet(
             patch.save(staging / filename)
             items.append(
                 {
-                    "review_id": f"BWV1013-p{page}-case{index:02d}",
+                    "review_id": (
+                        f"{source_hash[:12]}-p{page}-s{case['staff_index']}"
+                        f"-x{center_x}-y{center_y}"
+                    ),
                     **case,
                     "crop_file": filename,
                     "crop_bounds": [left, top, right, bottom],
@@ -186,8 +191,6 @@ def build_review_packet(
                 writer.writerow(
                     [item["review_id"], item["crop_file"], "unreviewed", "", "", "", ""]
                 )
-        with source.open("rb") as stream:
-            source_hash = hashlib.file_digest(stream, "sha256").hexdigest()
         manifest = {
             "format_version": 1,
             "source_pdf": source.name,

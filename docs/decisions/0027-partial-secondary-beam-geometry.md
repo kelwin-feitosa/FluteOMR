@@ -56,3 +56,33 @@ proposta no corpus publicado esteja correta.
 
 Fonte de serialização: [MusicXML 4.0 Beam](
 https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/beam/).
+
+## Benchmark real: BWV 1013, primeira página, 200 DPI
+
+[GitHub Actions 43086396936](https://github.com/kelwin-feitosa/FluteOMR/actions/runs/43086396936)
+passou no commit `b4618d3b3faf3e1b432c79d6cddf6c2a782aa1b4`.
+
+| Indicador | Antes do incremento | Depois |
+| --- | ---: | ---: |
+| Eventos propostos | 412 | 412 |
+| Alturas com valor proposto | 402 | 402 |
+| Durações propostas | 82 | 82 |
+| Durações inconclusivas | 330 | 330 |
+| Semicolcheias propostas | 10 | 10 |
+| Notas de grupos mistos confirmados | Não medido | **0** |
+
+As 330 durações inconclusivas foram agrupadas **por diagnósticos
+do próprio algoritmo**:
+
+- 282: `secondary_stripe_ambiguous` (grupo com pelo menos um par
+  de faixa secundária parcial, fundida ou sem separação suficiente);
+- 27: `weak_secondary_stripe` (traço fraco junto a outras conexões
+  secundárias confirmadas, ou artefato equivalente);
+- 21: `stem_not_confirmed` (ausência de haste confiável).
+
+**Não são categorias humanas verificadas nem precisão musical.**
+O benchmark NÃO mostrou aumento de durações determinadas na edição
+real; o reconhecimento de feixes mistos foi confirmado apenas em
+desenhos controlados. Não reduzimos os critérios de tinta para forçar
+classificações. A investigação seguinte deve começar pelos recortes
+visuais dos 282 casos de `secondary_stripe_ambiguous`.

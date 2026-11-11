@@ -13,16 +13,13 @@ def to_musicxml(score: MusicScore) -> bytes:
         raise ValueError(f"transcrição incompleta: {', '.join(issues)}")
     if not score.parts:
         raise ValueError("partitura sem partes")
-    divisions = (
-        2
-        if any(
-            note.duration.kind == "eighth"
-            for part in score.parts
-            for measure in part.measures
-            for note in measure.notes
-        )
-        else 1
-    )
+    kinds = {
+        note.duration.kind
+        for part in score.parts
+        for measure in part.measures
+        for note in measure.notes
+    }
+    divisions = 4 if "sixteenth" in kinds else 2 if "eighth" in kinds else 1
     root = ET.Element("score-partwise", version="4.0")
     part_list = ET.SubElement(root, "part-list")
     for part in score.parts:
@@ -63,9 +60,15 @@ def to_musicxml(score: MusicScore) -> bytes:
                 ET.SubElement(note_element, "duration").text = str(
                     note.duration.quarters * divisions
                 )
-                ET.SubElement(note_element, "type").text = note.duration.kind
+                ET.SubElement(note_element, "type").text = (
+                    "16th" if note.duration.kind == "sixteenth" else note.duration.kind
+                )
                 if note.beam is not None:
                     ET.SubElement(note_element, "beam", number="1").text = note.beam
+                    if note.duration.kind == "sixteenth":
+                        # Suportamos apenas grupos inteiros com segundo feixe
+                        # contínuo, não os feixes parciais de grupos mistos.
+                        ET.SubElement(note_element, "beam", number="2").text = note.beam
     xml = ET.tostring(root, encoding="utf-8", xml_declaration=True)
     return xml.replace(
         b"?>",
@@ -113,6 +116,7 @@ def _validate_supported_model(score: MusicScore) -> None:
                 ):
                     raise ValueError("altura escrita inválida ou não suportada")
                 if note.duration is not None and note.duration.kind not in (
+                    "sixteenth",
                     "eighth",
                     "quarter",
                     "half",

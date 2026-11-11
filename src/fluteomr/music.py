@@ -26,9 +26,7 @@ class Duration:
             "eighth": Fraction(1, 2),
             "quarter": Fraction(1),
             "half": Fraction(2),
-        }[
-            self.kind
-        ]
+        }[self.kind]
 
 
 @dataclass(frozen=True)
@@ -140,9 +138,7 @@ class Measure:
                 if not beam_open:
                     problems.append(f"beam_without_begin:note={index}")
                 elif (
-                    kind is not None
-                    and active_kind is not None
-                    and kind != active_kind
+                    kind is not None and active_kind is not None and kind != active_kind
                 ):
                     # Um grupo misto exigiria feixes secundários parciais.
                     # O modelo atual preserva somente grupos homogêneos.

@@ -1,0 +1,28 @@
+{
+  "format_version": 1,
+  "dataset_status": "catalogued_original_score; PDF acquisition not yet performed; ground truth MusicXML unavailable",
+  "sources": [
+    {
+      "id": "mutopia-bwv1013",
+      "work_id": "bachjs-bwv1013-original-edition-mutopia1528",
+      "title": "Partita in A minor for Solo Flute, BWV 1013",
+      "composer": "Johann Sebastian Bach",
+      "instrumentation": "solo flute, treble clef",
+      "edition": "Jacob Shapiro (Mutopia Project 1528, 2017-10-31)",
+      "source_category": "published_digitally_engraved_score",
+      "print_origin": "LilyPond retypeset from older public-domain manuscript; not a historical scan",
+      "license": "Public Domain dedication by typesetter (declared)",
+      "rights_evidence_url": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1528",
+      "pdf_url": "https://www.mutopiaproject.org/ftp/BachJS/BWV1013/bwv1013/bwv1013-a4.pdf",
+      "pdf_sha256": null,
+      "expected_pages": 5,
+      "source_lilypond_repo": "https://github.com/MutopiaProject/MutopiaProject/blob/master/ftp/BachJS/BWV1013/bwv1013/bwv1013.ly",
+      "source_lilypond_blob_sha": "e207f84261b8c061969fb6bdf63e3220bb04644c",
+      "local_lilypond": "tests/data/real_scores/mutopia-bwv1013.ly",
+      "musicxml_reference_status": "missing",
+      "human_review_status": "not_reviewed",
+      "split": "development",
+      "notes": "Published music used as independent visual stress test of staff detection; numerous sixteenth notes, accidentals, repetitions exceed current FluteOMR music support."
+    }
+  ]
+}

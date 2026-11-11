@@ -74,7 +74,7 @@ Estão registradas em [`docs/reviews/bwv1013-page1-observations.csv`](../reviews
 
 - **Caso 9**: quadrado reportado sobre o feixe/colchete, sem confirmação da altura real. Tratar como associação visual incorreta até reavaliação.
 - **Caso 10**: quadrado reportado sobre o feixe, não sobre a nota. Altura diatônica correta informada: **Mi5 (E5)**; o OMR havia proposto Si4 (B4).
-- **Caso 11**: caixa deslocada para o lado, próxima do símbolo de alteração. Altura diatônica correta informada: **Sol4 (G4)**; o OMR propôs Fá4 (F4). O recorte mostra sustenido, mas a associação exata deste acidente à nota ainda não foi confirmada na anotação.
-- **Caso 12**: altura diatônica correta informada: **Fá5 (F5)**; o OMR propôs Mi5 (E5). Há sustenido no recorte; registrar **presença de acidente** sem presumir o valor final da alteração até confirmação musical contextual.
+- **Caso 11**: caixa deslocada para o lado, próxima do símbolo de alteração. Altura diatônica correta informada: **Sol♯4 (G#4)**, incluindo o sustenido confirmado pelo revisor; o OMR propôs Fá4 (F4).
+- **Caso 12**: altura diatônica correta informada: **Fá♯5 (F#5)**, incluindo o sustenido confirmado pelo revisor; o OMR propôs Mi5 (E5).
 
-**Escopo rigoroso**: são observações humanas reais sobre altura diatônica e geometria dos casos 9–12, mas **não equivalem à validação integral dos eventos**. Duração, níveis de feixe, aplicação do acidente, resto do compasso e eventuais notas omitidas continuam não revisados. O CSV **não deve alimentar métricas de precisão final ou a divisão de teste reservado como ground truth completo**.
+**Escopo rigoroso**: são observações humanas reais sobre altura diatônica e geometria dos casos 9–12, mas **não equivalem à validação integral dos eventos**. Duração, níveis de feixe, acidentes nos demais casos, resto do compasso e eventuais notas omitidas continuam não revisados. O CSV **não deve alimentar métricas de precisão final ou a divisão de teste reservado como ground truth completo**.

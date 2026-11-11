@@ -79,7 +79,9 @@ def benchmark_pdf_staffs(
                         [round(line.y, 2) for line in staff.lines]
                         for staff in detection.staffs
                     ],
-                    "staff_spacings": [round(staff.spacing, 3) for staff in detection.staffs],
+                    "staff_spacings": [
+                        round(staff.spacing, 3) for staff in detection.staffs
+                    ],
                     "diagnostics": list(detection.diagnostics),
                     "raster_seconds": round(raster_seconds, 4),
                     "detection_seconds": round(detect_seconds, 4),

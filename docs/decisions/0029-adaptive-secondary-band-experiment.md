@@ -82,3 +82,21 @@ Ele não usa MusicXML derivado como rótulo de verdade.
 
 Não utilizar `adaptive_secondary` para geração automática de
 MusicXML final como se tivesse sido validada por humano.
+
+## Rastreabilidade de cada par A/B
+
+O relatório de sonda versão 2 registra SHA-256 do PDF e dos pixels RGB da
+página rasterizada, além das dimensões. O comparador rejeita relatórios
+com arquivos, páginas, DPI, imagens, versões ou contagens inconsistentes.
+Assim, nomes iguais de `source.pdf` não bastam para validar o pareamento.
+
+O workflow compara o padrão com o modo adaptativo **separadamente**
+em 150 e 200 DPI, no mesmo job, produzindo `adaptive-ab-150.json` e
+`adaptive-ab-200.json`. O relatório inclui mudanças por tipo de duração,
+além das razões de incerteza.
+
+Resultados históricos da BWV 1013 em 200 DPI (não devem ser apresentados
+como precisão): 82/412 durações resolvidas no padrão, 280/412 no
+adaptativo; 10 e 208 semicolcheias propostas, respectivamente.
+Essa diferença de cobertura pode incluir falsos positivos e exige
+revisão visual independente antes de qualquer ativação por padrão.

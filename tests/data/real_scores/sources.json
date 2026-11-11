@@ -36,7 +36,7 @@
       "license": "Public Domain (Mutopia edition declaration)",
       "rights_evidence_url": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1535",
       "pdf_url": "https://www.mutopiaproject.org/ftp/BachJS/BWV1031/bach_siciliano_bmv_1031/bach_siciliano_bmv_1031-a4.pdf",
-      "pdf_sha256": null,
+      "pdf_sha256": "d7d83ef363064d5eeab66ed6d41642983962b422aeefb9a527472e39ca613abb",
       "expected_pages": 2,
       "source_lilypond_repo": "https://github.com/MutopiaProject/MutopiaProject/blob/master/ftp/BachJS/BWV1031/bach_siciliano_bmv_1031/bach_siciliano_bmv_1031.ly",
       "source_lilypond_blob_sha": "45fdacf9055cb33ff238f328013c0f81d9bb3364",

@@ -8,7 +8,6 @@ from PIL import Image
 
 from fluteomr.music import (
     Clef,
-    Duration,
     Measure,
     MusicPart,
     MusicScore,

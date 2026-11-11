@@ -49,3 +49,29 @@ Os projetos GPL/AGPL podem ser estudados, mas **incorporação e redistribuiçã
 2. Instrumentar os diagnósticos de duração para quantificar semicolcheias/feixes duplos e outros motivos de incerteza em partituras publicadas.
 3. Obter referências MusicXML da mesma edição e revisadas por músicos antes de calcular acerto de nota/ritmo.
 4. Explorar vínculos de feixes no Audiveris por abstração independente, sem copiar implementação incompatível.
+
+## Verificação dos arquivos reais de MuseScore 3.2.3
+
+O [Actions 43063272146](https://github.com/kelwin-feitosa/FluteOMR/actions/runs/43063272146)
+instalou MuseScore 3.2.3 e obteve efetivamente um PDF, um PNG, um
+mpos com um elemento e um spos com quatro elementos para a fixture
+dev_down_flags.musicxml. Os arquivos e hashes constam do artefato.
+
+A inspeção do ZIP exportado mostrou que o PNG de uma página tem
+**1654 × 2339 pixels e canal alfa transparente**, com conteúdo visual
+apenas na área superior. Os elementos brutos mpos, porém, contêm por
+exemplo **x=944.882, y=3778.22, sx=5211.69, sy=666.667**, valores que
+não estão na escala de pixels da imagem 1654×2339. Portanto:
+
+- a normalização do PNG deve compor o fundo branco, como já faz
+  fluteomr.image_io.normalize_image;
+- mpos/spos devem ser preservados **sem assumir correspondência direta
+  de pixels ou cabeças de nota**;
+- qualquer transformação de coordenadas deve ser calibrada e validada
+  separadamente na versão MuseScore usada;
+- dados artificiais de uma mesma referência não são um teste independente
+  de precisão musical.
+
+A ferramenta passa a isolar as configurações do MuseScore em diretório
+temporário separado das gravuras: os dados de workspace criados pelo
+programa não devem poluir os arquivos publicados do benchmark.

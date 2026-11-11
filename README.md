@@ -215,6 +215,60 @@ em 150/200/300 DPI, mas as métricas de precisão musical permanecem
 Exemplos de execução e proveniência: [baseline público de 11/11/2026](
 docs/public-domain-corpus-benchmark-2026-11-11.md).
 
+## MuseScore como gerador opcional de imagens e mapas posicionais
+
+O MuseScore não é o motor OMR do projeto. A ferramenta
+`tools.musescore_fixture` usa uma **instalação separada do MuseScore**
+para gerar PDF, PNG, `mpos` e `spos` a partir de um MusicXML de autoria
+conhecida, com SHA-256, versão, DPI e status experimental no manifesto.
+
+```bash
+python -m tools.musescore_fixture \
+  tests/data/music_lab/dev_down_flags.musicxml \
+  --out-dir outputs/fixture-musescore \
+  --dpi 200 --format pdf --format png --format mpos --format spos
+```
+
+O teste [MuseScore 3.2.3 no GitHub Actions](
+https://github.com/kelwin-feitosa/FluteOMR/actions/runs/43063272146)
+gerou com sucesso os quatro formatos: uma página PNG, um registro de
+compasso em `mpos` e quatro registros de segmentos em `spos`.
+
+**Cuidados importantes:** o PNG exportado pode ser RGBA com fundo transparente;
+o loader do FluteOMR compõe o fundo branco. As coordenadas de `mpos/spos`
+**não devem ser interpretadas automaticamente como pixels do PNG**:
+a escala difere entre versões e configurações de exportação, e a posição
+de segmento não identifica necessariamente uma cabeça de nota.
+Não houve calibração geométrica automática nesta etapa.
+
+Esses arquivos são dados `source_authored`, e não prova independente
+de precisão em partituras reais ou revisão humana. A ferramenta não
+sobrescreve pastas e não instala automaticamente o MuseScore.
+
+## Microbenchmark do detector de cabeças de notas
+
+A otimização por soma acumulada horizontal foi testada com a partitura
+pública BWV 1013 em 200 DPI: **29.325 posições comparadas**, sem
+divergências entre a máscara anterior e o novo filtro. A comparação de
+formas teve mediana aproximadamente **3,37× mais rápida** no mesmo processo,
+mas isso não equivale à precisão musical ou garantia de desempenho em
+qualquer documento.
+
+```bash
+python -m tools.benchmark_shape \
+  outputs/real_scores/mutopia-bwv1013/source.pdf \
+  --page 1 --dpi 200 --step 4 --repeats 2 \
+  --report outputs/real_scores/mutopia-bwv1013/shape-ab.json
+```
+
+O diagnóstico `tools.real_music_probe` também resume os motivos de
+duração inconclusiva, como evidência de feixes duplos, sem exportar
+um MusicXML cuja correção não foi verificada.
+
+Detalhes técnicos, fontes consultadas e licenças em
+[`docs/decisions/0023-musescore-and-shape-performance.md`](
+docs/decisions/0023-musescore-and-shape-performance.md).
+
 ## Demonstração local e API
 
 Com o ambiente ativado, execute da raiz:

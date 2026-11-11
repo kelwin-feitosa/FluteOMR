@@ -1,0 +1,22 @@
+{
+  "format_version": 1,
+  "description": "Baseline controlado: imagem raster versionada e MusicXML de origem gerada; NÃO é benchmark humano independente.",
+  "examples": [
+    {
+      "id": "fixture-down-flags-300-source-authored",
+      "work_id": "fixture-down-flags-versioned",
+      "image": "dev_down_flags-300.png",
+      "reference": "dev_down_flags.musicxml",
+      "origin": "original_programmatic_exercise",
+      "source_category": "synthetic_musescore_raster",
+      "split": "development",
+      "reference_status": "source_authored",
+      "configured": {
+        "clef": "treble",
+        "time": "4/4",
+        "measure_left": 30,
+        "measure_right": 350
+      }
+    }
+  ]
+}

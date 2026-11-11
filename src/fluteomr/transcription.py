@@ -108,7 +108,10 @@ def transcribe_one_measure(
         normalize=normalize_heads,
     )
     notes, _, _ = _interpret_notes(
-        image, staff, result.threshold, heads,
+        image,
+        staff,
+        result.threshold,
+        heads,
         adaptive_secondary=adaptive_secondary,
     )
     measure = Measure(
@@ -203,7 +206,11 @@ def transcribe_staff_measures(
         raise ValueError("barras internas próximas ou ambíguas")
     boundaries = [content_left, *(bar.x for bar in accepted), content_right]
     notes, stems, marks = _interpret_notes(
-        image, staff, threshold, heads, bars,
+        image,
+        staff,
+        threshold,
+        heads,
+        bars,
         adaptive_secondary=adaptive_secondary,
     )
     measures = []

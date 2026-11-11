@@ -53,12 +53,21 @@ def test_prefix_shape_exact_matches_legacy_randomized(rx, ry, seed):
         prefix = _horizontal_ink_prefix(ink, width, height)
         for y in range(-1, height + 1, 2):
             for x in range(-1, width + 1, 2):
-                old = _shape(
-                    ink, width, height, x, y, rx, ry, core, rim, sides
-                )
+                old = _shape(ink, width, height, x, y, rx, ry, core, rim, sides)
                 new = _shape_from_prefix(
-                    prefix, width, height, x, y, rx, ry, core, rim, sides,
-                    _offset_spans(core), _offset_spans(rim), side_spans,
+                    prefix,
+                    width,
+                    height,
+                    x,
+                    y,
+                    rx,
+                    ry,
+                    core,
+                    rim,
+                    sides,
+                    _offset_spans(core),
+                    _offset_spans(rim),
+                    side_spans,
                 )
                 assert new == old, (rx, ry, seed, x, y, old, new)
 

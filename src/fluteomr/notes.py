@@ -102,7 +102,6 @@ def _shape(
     return None
 
 
-
 def _horizontal_ink_prefix(ink: bytearray, width: int, height: int) -> array:
     """Contagem acumulada por linha, com coluna zero vazia em cada linha.
 

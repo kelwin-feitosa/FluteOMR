@@ -95,6 +95,31 @@ contratos experimentais e política de compatibilidade. O resumo de avaliação
 separa resultados `validated` e `source_authored` em `reference_quality`;
 uma referência marcada `validated` exige pacote de revisão verificável.
 
+## Avaliação de corpus com proteção contra vazamentos
+
+Para avaliar vários manifestos com proteção contra repetição de obras entre
+`development`, `validation` e `test`, use `tools.evaluate_corpus`.
+O padrão é avaliar **somente development**; exige `work_id` explícito e
+verifica **todos** os manifestos antes de abrir qualquer imagem.
+
+```bash
+python -m tools.evaluate_corpus \
+  --manifest tests/data/music_lab/sprint1d/development-manifest.json \
+  --manifest tests/data/music_lab/sprint1d/validation-manifest.json \
+  --images-dir outputs/sprint-1d/rendered \
+  --split development \
+  --report outputs/sprint-1d/corpus-development.json
+```
+
+As imagens de `outputs/sprint-1d/rendered` precisam ter sido produzidas
+segundo as instruções de Sprint 1D mais abaixo. Use outro relatório e
+`--split validation` para validação. `--split test` é uma ação explícita
+para avaliação final reservada; nunca ajuste algoritmos com seus resultados.
+Falhas de processamento permanecem contabilizadas, e a CLI retorna código 1.
+O resumo separa `source_authored` de `validated`, sem alegar avaliação
+humana. Detalhes em
+[`docs/decisions/0022-corpus-evaluation.md`](docs/decisions/0022-corpus-evaluation.md).
+
 ## Importação de PDF — uma página por execução (experimental)
 
 O FluteOMR utiliza `pypdfium2`/**PDFium** apenas como rasterizador; detecção

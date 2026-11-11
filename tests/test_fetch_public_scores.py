@@ -8,10 +8,7 @@ import pytest
 
 from tools import fetch_public_scores
 
-PDF_URL = (
-    "https://www.mutopiaproject.org/ftp/BachJS/BWV1013/"
-    "bwv1013/bwv1013-a4.pdf"
-)
+PDF_URL = "https://www.mutopiaproject.org/ftp/BachJS/BWV1013/bwv1013/bwv1013-a4.pdf"
 
 
 class FakeResponse(io.BytesIO):
@@ -138,8 +135,7 @@ def test_catalog_valid_and_rejects_duplicate_ids(tmp_path):
     data = {"format_version": 1, "sources": [_item()]}
     path.write_text(json.dumps(data))
     assert (
-        fetch_public_scores.load_catalog(path)["mutopia-bwv1013"]["pdf_sha256"]
-        is None
+        fetch_public_scores.load_catalog(path)["mutopia-bwv1013"]["pdf_sha256"] is None
     )
     data["sources"].append(_item())
     path.write_text(json.dumps(data))

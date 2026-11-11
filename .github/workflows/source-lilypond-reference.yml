@@ -7,6 +7,7 @@ on:
       - "tools/inspect_lilypond_candidates.py"
       - "tests/test_lilypond_reference_candidates.py"
       - "tests/data/real_scores/mutopia-bwv1013.ly"
+      - "tests/data/real_scores/bwv1013-allemande-start.json"
   workflow_dispatch:
 
 permissions:
@@ -59,6 +60,7 @@ jobs:
           python -m tools.inspect_lilypond_candidates \
             --source tests/data/real_scores/mutopia-bwv1013.ly \
             --candidates outputs/reference_candidates \
+            --expected-prefix tests/data/real_scores/bwv1013-allemande-start.json \
             --report outputs/reference_candidates/source-candidate-manifest.json
       - name: Preservar somente candidato público temporário
         if: always()

@@ -6,10 +6,13 @@ exportações MSCZ e PDF musical dependerão de integração apropriada.
 
 ## Estado atual e limites
 
-O núcleo detecta pautas horizontais de cinco linhas em PNG/JPEG e em páginas\nPDF rasterizadas opcionalmente, agrupa sistemas
+O núcleo detecta pautas horizontais de cinco linhas em PNG/JPEG e em páginas
+PDF rasterizadas opcionalmente, agrupa sistemas
 quando há evidência geométrica e oferece um detector experimental de clave de sol.
 Uma CLI experimental infere semínimas/mínimas em um ou mais compassos controlados e exporta
-MusicXML. Há saída JSON, depuração e interfaces locais de revisão. A importação\nPDF permite selecionar uma página para rasterização; ainda não há montagem\nmultiplágina automática, reconhecimento musical geral nem modelos de ML.
+MusicXML. Há saída JSON, depuração e interfaces locais de revisão. A importação
+PDF permite selecionar uma página para rasterização; ainda não há montagem
+multiplágina automática, reconhecimento musical geral nem modelos de ML.
 O algoritmo é próprio; OMRs existentes não substituem o núcleo.
 
 O alvo inicial são partituras limpas, digitalmente geradas, com uma pauta em clave
@@ -31,7 +34,9 @@ python -m pip install --no-build-isolation --no-deps -e .
 
 O lock fixa ferramentas, backend e dependências transitivas. A instalação requer
 acesso ao PyPI; nenhum serviço externo participa do processamento. Pillow 12.3.0
-é a única dependência obrigatória de execução, para imagens, sem NumPy, OpenCV\nou GPU. Para renderizar PDFs, instale o extra opcional\n`python -m pip install -e '.[pdf]'` (PDFium). Para atualizar ferramentas, altere os pins no
+é a única dependência obrigatória de execução, para imagens, sem NumPy, OpenCV
+ou GPU. Para renderizar PDFs, instale o extra opcional
+`python -m pip install -e '.[pdf]'` (PDFium). Para atualizar ferramentas, altere os pins no
 `pyproject.toml`, regenere o lock em ambiente limpo e execute as verificações.
 
 ## Execução e qualidade

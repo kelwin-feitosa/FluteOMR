@@ -8,7 +8,6 @@ import pytest
 
 from tools import fetch_public_scores
 
-
 PDF_URL = (
     "https://www.mutopiaproject.org/ftp/BachJS/BWV1013/"
     "bwv1013/bwv1013-a4.pdf"
@@ -67,7 +66,9 @@ def test_acquires_valid_pdf_and_records_actual_hash_without_claiming_pin(tmp_pat
 def test_pinned_sha256_is_verified_before_writing(tmp_path):
     pdf = _pdf()
     item = _item(hashlib.sha256(pdf).hexdigest())
-    record = fetch_public_scores.download_score(item, tmp_path, opener=lambda *_a, **_k: FakeResponse(pdf))
+    record = fetch_public_scores.download_score(
+        item, tmp_path, opener=lambda *_a, **_k: FakeResponse(pdf)
+    )
     assert record["checksum_verified_against_pin"] is True
 
 
@@ -136,7 +137,10 @@ def test_catalog_valid_and_rejects_duplicate_ids(tmp_path):
     path = tmp_path / "sources.json"
     data = {"format_version": 1, "sources": [_item()]}
     path.write_text(json.dumps(data))
-    assert fetch_public_scores.load_catalog(path)["mutopia-bwv1013"]["pdf_sha256"] is None
+    assert (
+        fetch_public_scores.load_catalog(path)["mutopia-bwv1013"]["pdf_sha256"]
+        is None
+    )
     data["sources"].append(_item())
     path.write_text(json.dumps(data))
     with pytest.raises(fetch_public_scores.CorpusSourceError, match="id duplicado"):

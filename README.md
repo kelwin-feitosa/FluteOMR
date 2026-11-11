@@ -182,6 +182,39 @@ de todos os arquivos ou a correção musical. Consulte
 [`docs/corpus-sources.md`](docs/corpus-sources.md) para critérios de licença,
 etapas de revisão e fontes candidatas.
 
+## Corpus publicado de flauta — aquisição e baseline reproduzível
+
+O projeto também possui duas edições do Mutopia em domínio público, **obtidas e
+testadas de fato** em GitHub Actions: a Partita BWV 1013 para flauta solo (cinco
+páginas) e o Siciliano BWV 1031 para flauta/violão (duas páginas, controle
+geométrico multiparte). As fontes LilyPond originais foram preservadas; os PDFs
+são baixados por script com origem e SHA-256 fixados, sem versionar arquivos
+volumosos no Git.
+
+```bash
+python -m tools.fetch_public_scores \
+  --id mutopia-bwv1013 --id mutopia-bwv1031 --out-dir outputs/real_scores
+
+python -m tools.real_staff_baseline \
+  outputs/real_scores/mutopia-bwv1013/source.pdf \
+  --page 1 --page 2 --page 3 --page 4 --page 5 \
+  --dpi 150 --dpi 200 --dpi 300 \
+  --report outputs/real_scores/mutopia-bwv1013/geometry.json
+
+python -m tools.real_music_probe \
+  outputs/real_scores/mutopia-bwv1013/source.pdf \
+  --page 1 --dpi 200 \
+  --report outputs/real_scores/mutopia-bwv1013/music-probe.json
+```
+
+O último comando gera **diagnóstico sem MusicXML** e pode informar falha de
+processamento; nunca atribui acerto musical sem referência independente.
+A análise de todas as sete páginas encontrou contagens de pautas consistentes
+em 150/200/300 DPI, mas as métricas de precisão musical permanecem
+`not_evaluated`. Referências MusicXML humanas independentes ainda faltam.
+Exemplos de execução e proveniência: [baseline público de 11/11/2026](
+docs/public-domain-corpus-benchmark-2026-11-11.md).
+
 ## Demonstração local e API
 
 Com o ambiente ativado, execute da raiz:

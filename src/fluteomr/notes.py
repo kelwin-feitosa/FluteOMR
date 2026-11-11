@@ -425,12 +425,29 @@ def _deduplicate_candidates(
     candidates: list[NoteheadObservation], spacing: float
 ) -> tuple[NoteheadObservation, ...]:
     """Une sondas da mesma cabeça; mantém eventos próximos em `x` e grau distinto."""
+    # A regra original verifica todos os escolhidos, com custo quadrático
+    # mesmo quando estão em regiões horizontais distantes. Como dois candidatos
+    # só podem conflitar se |dx| < 0.9 espaço, basta consultar o próprio bucket
+    # horizontal e os dois adjacentes, sem mudar ordem ou preferência.
     chosen = []
+    radius = 0.9 * spacing
+    buckets: dict[int, list[NoteheadObservation]] = {}
     for candidate in sorted(
         candidates, key=lambda c: (c.stem_present, c.shape_score), reverse=True
     ):
+        if radius > 0:
+            key = floor(candidate.center_x / radius)
+            near = (
+                previous
+                for neighbor in (key - 1, key, key + 1)
+                for previous in buckets.get(neighbor, ())
+            )
+        else:
+            # Preserva o comportamento legado se um chamador passar geometria
+            # degenerada (não há vizinhos capazes de satisfazer |dx| < radius).
+            near = iter(chosen)
         if any(
-            abs(candidate.center_x - previous.center_x) < 0.9 * spacing
+            abs(candidate.center_x - previous.center_x) < radius
             and (
                 abs(candidate.center_y - previous.center_y) < 0.65 * spacing
                 or (
@@ -438,10 +455,12 @@ def _deduplicate_candidates(
                     and abs(candidate.center_y - previous.center_y) < 1.1 * spacing
                 )
             )
-            for previous in chosen
+            for previous in near
         ):
             continue
         chosen.append(candidate)
+        if radius > 0:
+            buckets.setdefault(key, []).append(candidate)
     return tuple(sorted(chosen, key=lambda c: c.center_x))
 
 

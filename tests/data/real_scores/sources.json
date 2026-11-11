@@ -1,0 +1,50 @@
+{
+  "format_version": 1,
+  "dataset_status": "catalogued_original_score; PDF acquisition not yet performed; ground truth MusicXML unavailable",
+  "sources": [
+    {
+      "id": "mutopia-bwv1013",
+      "work_id": "bachjs-bwv1013-original-edition-mutopia1528",
+      "title": "Partita in A minor for Solo Flute, BWV 1013",
+      "composer": "Johann Sebastian Bach",
+      "instrumentation": "solo flute, treble clef",
+      "edition": "Jacob Shapiro (Mutopia Project 1528, 2017-10-31)",
+      "source_category": "published_digitally_engraved_score",
+      "print_origin": "LilyPond retypeset from older public-domain manuscript; not a historical scan",
+      "license": "Public Domain dedication by typesetter (declared)",
+      "rights_evidence_url": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1528",
+      "pdf_url": "https://www.mutopiaproject.org/ftp/BachJS/BWV1013/bwv1013/bwv1013-a4.pdf",
+      "pdf_sha256": "f73c6e478af78237ebf0cf2e9842cf111937e76e6e5e018bb85e5be729a31d47",
+      "expected_pages": 5,
+      "source_lilypond_repo": "https://github.com/MutopiaProject/MutopiaProject/blob/master/ftp/BachJS/BWV1013/bwv1013/bwv1013.ly",
+      "source_lilypond_blob_sha": "e207f84261b8c061969fb6bdf63e3220bb04644c",
+      "local_lilypond": "tests/data/real_scores/mutopia-bwv1013.ly",
+      "musicxml_reference_status": "missing",
+      "human_review_status": "not_reviewed",
+      "split": "development",
+      "notes": "Published music used as independent visual stress test of staff detection; numerous sixteenth notes, accidentals, repetitions exceed current FluteOMR music support."
+    },
+    {
+      "id": "mutopia-bwv1031",
+      "work_id": "bachjs-bwv1031-flute-guitar-mutopia1535",
+      "title": "Siciliano from the Flute Sonata BWV 1031 (flute & guitar)",
+      "composer": "Johann Sebastian Bach (attribution as printed)",
+      "instrumentation": "flute and guitar (2 staves, guitar polyphony)",
+      "edition": "Mutopia Project edition 1535, 2008-09-01",
+      "source_category": "published_digitally_engraved_score",
+      "print_origin": "Re-engraved music derived from Bach-Gesellschaft (historical publication); not a historical scan",
+      "license": "Public Domain (Mutopia edition declaration)",
+      "rights_evidence_url": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1535",
+      "pdf_url": "https://www.mutopiaproject.org/ftp/BachJS/BWV1031/bach_siciliano_bmv_1031/bach_siciliano_bmv_1031-a4.pdf",
+      "pdf_sha256": "d7d83ef363064d5eeab66ed6d41642983962b422aeefb9a527472e39ca613abb",
+      "expected_pages": 2,
+      "source_lilypond_repo": "https://github.com/MutopiaProject/MutopiaProject/blob/master/ftp/BachJS/BWV1031/bach_siciliano_bmv_1031/bach_siciliano_bmv_1031.ly",
+      "source_lilypond_blob_sha": "45fdacf9055cb33ff238f328013c0f81d9bb3364",
+      "local_lilypond": "tests/data/real_scores/mutopia-bwv1031.ly",
+      "musicxml_reference_status": "missing",
+      "human_review_status": "not_reviewed",
+      "split": "development",
+      "notes": "Real published multi-part negative-control layout, useful for staff geometry. Explicitly outside the initial monophonic flute transcription scope."
+    }
+  ]
+}

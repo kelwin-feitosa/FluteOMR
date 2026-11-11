@@ -173,6 +173,7 @@ def detect_rhythm_evidence(
     secondary_connections: dict[str, set[str]] = {
         stem.id: set() for stem, _ in linked
     }
+    ambiguous_secondary: set[str] = set()
     radius = max(2, round(0.32 * staff.spacing))
     for (first, first_head), (second, second_head) in zip(
         linked, linked[1:], strict=False
@@ -222,6 +223,12 @@ def detect_rhythm_evidence(
             if midpoint_support <= 0.35:
                 secondary_connections[first.id].add(second.id)
                 secondary_connections[second.id].add(first.id)
+            else:
+                ambiguous_secondary.update((first.id, second.id))
+        elif secondary_support >= 0.55:
+            # Uma marca secundária interrompida pode ser um feixe curto
+            # (hook). Não exportar a relação como colcheia sem revisão.
+            ambiguous_secondary.update((first.id, second.id))
         connections[first.id].add(second.id)
         connections[second.id].add(first.id)
     groups = {}
@@ -240,11 +247,11 @@ def detect_rhythm_evidence(
         group = frozenset(members)
         groups.update({member: group for member in group})
         secondary_present = any(secondary_connections[member] for member in group)
-        if secondary_present:
+        if secondary_present or group & ambiguous_secondary:
             # Um único par com dois feixes NÃO é evidência suficiente para
             # dar duração de semicolcheia a todos os membros do grupo.
             # Os feixes parciais (mistura de 8th/16th) exigem modelagem própria.
-            if all(
+            if not group & ambiguous_secondary and all(
                 secondary_connections[member] == connections[member]
                 and 1 <= len(connections[member]) <= 2
                 for member in group

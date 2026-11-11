@@ -21,6 +21,10 @@ def _probe(adaptive: bool) -> dict:
         "experimental_adaptive_secondary": adaptive,
         "predicted_events": 4,
         "resolved_duration_events": resolved,
+        "resolved_duration_kind_counts": {
+            "quarter": 2,
+            "sixteenth": resolved - 2,
+        },
         "unresolved_duration_events": 4 - resolved,
         "predicted_double_beam_sixteenths": resolved - 2,
         "confirmed_mixed_beam_note_count": resolved - 2,
@@ -47,6 +51,11 @@ def test_coverage_delta_never_claims_music_accuracy():
     assert result["xml_export"] == "not_attempted"
     assert result["source_pdf_sha256"] == "a" * 64
     assert result["page_image_sha256"] == "b" * 64
+    assert result["resolved_duration_kind_comparison"]["sixteenth"] == {
+        "baseline": 0,
+        "adaptive": 1,
+        "delta": 1,
+    }
 
 
 @pytest.mark.parametrize(
@@ -113,3 +122,9 @@ def test_rejects_missing_or_malformed_image_provenance(field, invalid):
     adaptive[field] = invalid
     with pytest.raises(ValueError):
         compare_probe_reports(baseline, adaptive)
+
+def test_rejects_fabricated_duration_type_totals():
+    adaptive = _probe(True)
+    adaptive["resolved_duration_kind_counts"]["sixteenth"] = 7
+    with pytest.raises(ValueError, match="soma de tipos"):
+        compare_probe_reports(_probe(False), adaptive)

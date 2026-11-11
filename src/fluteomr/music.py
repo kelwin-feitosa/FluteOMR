@@ -7,9 +7,7 @@ from typing import Literal
 from fluteomr.staff_detection import Region
 
 Origin = Literal["image", "configuration", "user", "unknown"]
-BeamPosition = Literal[
-    "begin", "continue", "end", "forward hook", "backward hook"
-]
+BeamPosition = Literal["begin", "continue", "end", "forward hook", "backward hook"]
 
 
 @dataclass(frozen=True)
@@ -145,22 +143,20 @@ class Measure:
         for index, note in enumerate(self.notes):
             kind = note.duration.kind if note.duration else None
             levels = note_beam_levels(note)
-            if (
-                not isinstance(levels, tuple)
-                or any(
-                    not isinstance(item, tuple)
-                    or len(item) != 2
-                    or type(item[0]) is not int
-                    or item[0] not in (1, 2)
-                    or item[1] not in (
-                        "begin",
-                        "continue",
-                        "end",
-                        "forward hook",
-                        "backward hook",
-                    )
-                    for item in levels
+            if not isinstance(levels, tuple) or any(
+                not isinstance(item, tuple)
+                or len(item) != 2
+                or type(item[0]) is not int
+                or item[0] not in (1, 2)
+                or item[1]
+                not in (
+                    "begin",
+                    "continue",
+                    "end",
+                    "forward hook",
+                    "backward hook",
                 )
+                for item in levels
             ):
                 problems.append(f"beam_levels_invalid:note={index}")
                 continue

@@ -58,9 +58,7 @@ def test_generates_separate_png_pages_position_maps_and_provenance(
     assert result["provenance"] == "source_authored_engraved_by_musescore"
     assert not result["human_ground_truth_reviewed"]
     assert not result["independent_printed_score"]
-    assert [o["format"] for o in result["outputs"]] == [
-        "pdf", "png", "mpos", "spos"
-    ]
+    assert [o["format"] for o in result["outputs"]] == ["pdf", "png", "mpos", "spos"]
     assert len(result["outputs"][1]["files"]) == 2
     assert result["outputs"][2]["files"][0]["position_elements"] == 1
     assert [call[0][-1] for call in calls[1:]] == [str(score.resolve())] * 4
@@ -96,9 +94,7 @@ def test_rejects_invalid_configuration_before_running(tmp_path, formats, dpi):
     assert not (tmp_path / "rendered").exists()
 
 
-def test_refuses_incomplete_export_and_leaves_no_final_directory(
-    tmp_path, monkeypatch
-):
+def test_refuses_incomplete_export_and_leaves_no_final_directory(tmp_path, monkeypatch):
     score, binary = _inputs(tmp_path)
     monkeypatch.setattr(
         musescore_fixture.subprocess,
@@ -136,9 +132,7 @@ def test_refuses_invalid_positions_xml(tmp_path, monkeypatch):
 
     monkeypatch.setattr(musescore_fixture.subprocess, "run", fake)
     with pytest.raises(MuseScoreRenderError, match="XML de posições inválido"):
-        render_fixture(
-            score, tmp_path / "rendered", binary=binary, formats=("mpos",)
-        )
+        render_fixture(score, tmp_path / "rendered", binary=binary, formats=("mpos",))
 
 
 def test_refuses_musicxml_as_binary_and_unavailable_executable(tmp_path):
@@ -146,6 +140,4 @@ def test_refuses_musicxml_as_binary_and_unavailable_executable(tmp_path):
     with pytest.raises(MuseScoreRenderError, match="executável"):
         render_fixture(score, tmp_path / "rendered", binary=score)
     with pytest.raises(MuseScoreRenderError, match="MusicXML"):
-        render_fixture(
-            binary, tmp_path / "rendered", binary=binary, formats=("pdf",)
-        )
+        render_fixture(binary, tmp_path / "rendered", binary=binary, formats=("pdf",))

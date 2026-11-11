@@ -37,10 +37,15 @@ class TranscriptionResult:
     rhythm_evidence: tuple[RhythmEvidence, ...] = ()
 
 
-def _interpret_notes(image, staff, threshold, heads, barlines=()):
+def _interpret_notes(
+    image, staff, threshold, heads, barlines=(), *, adaptive_secondary=False
+):
     stems = linked_stems(image, staff, threshold, heads)
+    rhythm_kwargs = {"barlines": barlines}
+    if adaptive_secondary:
+        rhythm_kwargs["adaptive_secondary"] = True
     marks = detect_rhythm_evidence(
-        image, staff, threshold, heads, stems, barlines=barlines
+        image, staff, threshold, heads, stems, **rhythm_kwargs
     )
     by_head = {mark.head_id: mark for mark in marks}
     notes = []
@@ -85,6 +90,7 @@ def transcribe_one_measure(
     part_name: str | None = None,
     instrument: Instrument | None = None,
     normalize_heads: bool = True,
+    adaptive_secondary: bool = False,
 ) -> MusicScore:
     """Clave de sol, fórmula e limites são configuração, nunca visão inferida."""
     if beats < 1:
@@ -101,7 +107,10 @@ def transcribe_one_measure(
         measure_right,
         normalize=normalize_heads,
     )
-    notes, _, _ = _interpret_notes(image, staff, result.threshold, heads)
+    notes, _, _ = _interpret_notes(
+        image, staff, result.threshold, heads,
+        adaptive_secondary=adaptive_secondary,
+    )
     measure = Measure(
         1, notes, TimeSignature(beats, 4, "configuration"), "configuration"
     )
@@ -126,6 +135,7 @@ def transcribe_measures(
     part_name: str | None = None,
     instrument: Instrument | None = None,
     normalize_heads: bool = True,
+    adaptive_secondary: bool = False,
 ) -> TranscriptionResult:
     """Divide uma pauta pelos traços verticais inferidos dentro de limites dados.
 
@@ -148,6 +158,7 @@ def transcribe_measures(
         part_name=part_name,
         instrument=instrument,
         normalize_heads=normalize_heads,
+        adaptive_secondary=adaptive_secondary,
         require_internal_bar=True,
     )
 
@@ -163,6 +174,7 @@ def transcribe_staff_measures(
     part_name: str | None = None,
     instrument: Instrument | None = None,
     normalize_heads: bool = True,
+    adaptive_secondary: bool = False,
     require_internal_bar: bool = False,
 ) -> TranscriptionResult:
     """Consome geometria já detectada; bordas externas continuam provisórias.
@@ -190,7 +202,10 @@ def transcribe_staff_measures(
     ):
         raise ValueError("barras internas próximas ou ambíguas")
     boundaries = [content_left, *(bar.x for bar in accepted), content_right]
-    notes, stems, marks = _interpret_notes(image, staff, threshold, heads, bars)
+    notes, stems, marks = _interpret_notes(
+        image, staff, threshold, heads, bars,
+        adaptive_secondary=adaptive_secondary,
+    )
     measures = []
     for index, (left, right) in enumerate(
         zip(boundaries, boundaries[1:], strict=False), 1

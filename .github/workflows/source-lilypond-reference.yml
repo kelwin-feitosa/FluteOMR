@@ -1,0 +1,52 @@
+name: Candidato MusicXML do LilyPond original (não revisado)
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/source-lilypond-reference.yml"
+      - "tools/inspect_lilypond_candidates.py"
+      - "tests/test_lilypond_reference_candidates.py"
+      - "tests/data/real_scores/mutopia-bwv1013.ly"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  convert-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Instalar LilyPond público e conversor MIT isolado
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends lilypond
+          python -m pip install --disable-pip-version-check "ly-to-musicxml==0.1.1"
+          lilypond --version
+      - name: Converter fonte musical independente do FluteOMR
+        run: |
+          mkdir -p outputs/reference_candidates
+          ly-to-musicxml \
+            tests/data/real_scores/mutopia-bwv1013.ly \
+            -o outputs/reference_candidates/bwv1013.musicxml \
+            --lilypond-bin "$(command -v lilypond)"
+      - name: Inventariar e classificar candidato NÃO verificado por músico
+        run: |
+          python -m tools.inspect_lilypond_candidates \
+            --source tests/data/real_scores/mutopia-bwv1013.ly \
+            --candidates outputs/reference_candidates \
+            --report outputs/reference_candidates/source-candidate-manifest.json
+      - name: Preservar somente candidato público temporário
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bwv1013-lilypond-source-derived-unreviewed
+          path: outputs/reference_candidates/
+          retention-days: 7
+          if-no-files-found: warn

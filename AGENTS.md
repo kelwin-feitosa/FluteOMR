@@ -28,6 +28,24 @@ Preserve alterações existentes. Sem autorização, não apague arquivos, execu
 
 Sem histórico, não há convenção de commits estabelecida; prefira assuntos imperativos e mudanças focadas. PRs devem explicar alterações, validação, issues relacionadas e mudanças de configuração; inclua imagens para alterações visuais.
 
+## Fluxo de PRs e merges autorizado
+
+O mantenedor autorizou explicitamente o agente a realizar commits,
+criar PRs e **integrar na `main` sem nova aprovação para cada mudança**
+quando todas as exigências forem cumpridas: testes existentes e novos,
+lint, formatação, segurança, licenças, compatibilidade e CI concluídos
+com sucesso no SHA exato do PR, sem conflitos nem regressões não
+justificadas. Um CI verde não prova precisão musical em corpus real:
+registre a classificação da referência e as limitações da evidência.
+
+Mantenha cada alteração em branch criada da `main`, sem cadeias de PRs
+dependentes. Após o merge, confirme a versão e, quando aplicável, os
+checks da `main`. O workflow de limpeza pode excluir a branch de PR
+**somente depois que o GitHub confirmar o merge**, nunca antes.
+Não force push na `main`, não contorne branch protection, não oculte
+falhas e não faça merge quando os critérios não forem satisfeitos.
+Em caso de bloqueio, mantenha o trabalho revisável e documente o motivo.
+
 ## Segurança, custos e materiais
 
 Não introduza serviços pagos, APIs com cobrança ou dependências de nuvem sem aprovação. Não inclua partituras de terceiros sem verificar condições de uso e distribuição. Não versione credenciais ou configurações privadas; use exemplos com placeholders e ignore arquivos locais e saídas geradas em `.gitignore`.

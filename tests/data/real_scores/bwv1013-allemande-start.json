@@ -1,0 +1,39 @@
+{
+  "format_version": 1,
+  "source_id": "mutopia-bwv1013",
+  "source_sha256": "03dcdeab3ff17cb0ef331e0e96277c2c48450d68f0aad5c603870dfbf512c008",
+  "movement": "Allemande",
+  "source_literal": "r16 e''16 a''16 gis''16",
+  "expected_events": [
+    {
+      "rest": true,
+      "type": "16th",
+      "step": null,
+      "alter": null,
+      "octave": null
+    },
+    {
+      "rest": false,
+      "type": "16th",
+      "step": "E",
+      "alter": null,
+      "octave": "5"
+    },
+    {
+      "rest": false,
+      "type": "16th",
+      "step": "A",
+      "alter": null,
+      "octave": "5"
+    },
+    {
+      "rest": false,
+      "type": "16th",
+      "step": "G",
+      "alter": "1",
+      "octave": "5"
+    }
+  ],
+  "annotation_status": "source_literal_independently_checked_not_human_engraving_review",
+  "caveat": "Confere apenas o prefixo literal da Allemande na mesma fonte LilyPond. Não demonstra equivalência da obra, dos compassos nem da gravura."
+}

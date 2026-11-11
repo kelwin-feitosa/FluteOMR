@@ -241,6 +241,30 @@ limitações e protocolo em
 [`docs/decisions/0024-sixteenth-beam-evidence.md`](
 docs/decisions/0024-sixteenth-beam-evidence.md).
 
+## Referências MusicXML derivadas de LilyPond (não validadas)
+
+Para investigar a referência musical da edição Mutopia BWV 1013, o workflow
+`source-lilypond-reference.yml` executa **em ambiente separado** o
+conversor MIT `ly-to-musicxml==0.1.1`, com LilyPond oficial 2.26.0
+e hashes/dependências fixados. Isso não adiciona dependências ao motor OMR.
+
+O conversor gerou um arquivo de 425 notas, 28 compassos e nenhuma pausa,
+porém o início do movimento *Allemande* na fonte LilyPond contém uma
+pausa de semicolcheia. **A conversão foi rejeitada como referência
+musical**, apesar de seu XML ser parseável. A evidência de divergência
+é checada automaticamente contra o arquivo
+`tests/data/real_scores/bwv1013-allemande-start.json`, vinculado
+ao SHA-256 da fonte.
+
+A ferramenta `tools.inspect_lilypond_candidates` registra os hashes,
+eventos e contradições de abertura com status
+`rejected_source_prefix_mismatch`, sem atribuir revisão humana
+ou qualidade musical ao arquivo. Não usar a saída em benchmarks
+de acerto enquanto não houver alinhamento e verificação da partitura.
+
+Consulte a [ADR 0025](
+docs/decisions/0025-lilypond-reference-converter-validation.md).
+
 ## MuseScore como gerador opcional de imagens e mapas posicionais
 
 O MuseScore não é o motor OMR do projeto. A ferramenta

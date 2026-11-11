@@ -49,6 +49,9 @@ def test_generates_separate_png_pages_position_maps_and_provenance(
 
     def fake(*a, **kw):
         calls.append((a[0], kw))
+        profile_data = Path(kw["env"]["XDG_DATA_HOME"])
+        profile_data.mkdir(parents=True, exist_ok=True)
+        (profile_data / "menu-state.xml").write_text("<prefs/>")
         return _fake_run(*a, **kw)
 
     monkeypatch.setattr(musescore_fixture.subprocess, "run", fake)
@@ -64,6 +67,9 @@ def test_generates_separate_png_pages_position_maps_and_provenance(
     assert [call[0][-1] for call in calls[1:]] == [str(score.resolve())] * 4
     assert all(call[1]["env"]["QT_QPA_PLATFORM"] == "offscreen" for call in calls)
     assert all("-r" in call[0] for call in calls[1:])
+    assert not (destination / "data").exists()
+    assert not (destination / "menu-state.xml").exists()
+    assert not list(tmp_path.glob(".musescore-profile-*"))
     before = (destination / "manifest.json").read_bytes()
     with pytest.raises(FileExistsError):
         render_fixture(score, destination, binary=binary)

@@ -43,8 +43,12 @@ def _fake_score():
     return MusicScore(
         (
             MusicPart(
-                "P1", "Flute", "configuration", (0, 1),
-                Clef("treble", "user"), (measure,),
+                "P1",
+                "Flute",
+                "configuration",
+                (0, 1),
+                Clef("treble", "user"),
+                (measure,),
             ),
         )
     )
@@ -101,14 +105,17 @@ def test_review_has_reproducible_public_image_crops_and_no_fake_accuracy(
     assert (destination / "review-manifest.json").read_bytes() == before
 
 
-@pytest.mark.parametrize("kwargs", [
-    {"dpi": 50},
-    {"dpi": 500},
-    {"page": 0},
-    {"max_cases": 0},
-    {"max_cases": 60},
-    {"max_cases": True},
-])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"dpi": 50},
+        {"dpi": 500},
+        {"page": 0},
+        {"max_cases": 0},
+        {"max_cases": 60},
+        {"max_cases": True},
+    ],
+)
 def test_invalid_review_settings_never_publish_data(tmp_path, monkeypatch, kwargs):
     pdf, destination = _prepare(tmp_path, monkeypatch)
     with pytest.raises(ValueError):

@@ -81,8 +81,7 @@ def probe_pdf(
                 for note in notes
             ),
             "confirmed_mixed_beam_note_count": sum(
-                "verified_partial_secondary_group" in note.diagnostics
-                for note in notes
+                "verified_partial_secondary_group" in note.diagnostics for note in notes
             ),
             "confirmed_mixed_beam_duration_counts": dict(
                 sorted(

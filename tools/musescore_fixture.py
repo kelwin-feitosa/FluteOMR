@@ -80,16 +80,22 @@ def render_fixture(
         raise FileExistsError("diretório de saída já existe; não sobrescrever")
     executable = _binary_path(binary)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(
-        prefix=".musescore-fixture-", dir=destination.parent
-    ) as temporary:
+    with (
+        tempfile.TemporaryDirectory(
+            prefix=".musescore-fixture-", dir=destination.parent
+        ) as temporary,
+        tempfile.TemporaryDirectory(
+            prefix=".musescore-profile-", dir=destination.parent
+        ) as profile,
+    ):
         staging = Path(temporary)
-        # Não escrever configurações no perfil real do usuário.
+        # Isolar o perfil do SO E evitar que arquivos temporários de
+        # configuração sejam publicados junto com as gravuras finais.
         env = os.environ.copy()
         env["QT_QPA_PLATFORM"] = "offscreen"
         env["MU_QT_QPA_PLATFORM"] = "offscreen"
-        env["XDG_CONFIG_HOME"] = str(staging / "config")
-        env["XDG_DATA_HOME"] = str(staging / "data")
+        env["XDG_CONFIG_HOME"] = str(Path(profile) / "config")
+        env["XDG_DATA_HOME"] = str(Path(profile) / "data")
         try:
             version = subprocess.run(
                 [str(executable), "--version"],
@@ -175,8 +181,9 @@ def render_fixture(
             "dpi_requested": dpi,
             "outputs": outputs,
             "position_caveat": (
-                "mpos/spos documentam posições do MuseScore, não garantem "
-                "alinhamento de cada nota ou qualidade do OMR."
+                "mpos/spos registram coordenadas em unidades dependentes da "
+                "versão/exportação; NÃO são necessariamente pixels PNG e "
+                "não identificam individualmente cada nota."
             ),
         }
         (staging / "manifest.json").write_text(

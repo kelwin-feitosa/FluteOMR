@@ -12,7 +12,12 @@ from fluteomr.pdf_io import load_pdf_page
 
 
 def probe_pdf(
-    source: Path, *, page_number: int = 1, dpi: int = 200, report: Path | None = None
+    source: Path,
+    *,
+    page_number: int = 1,
+    dpi: int = 200,
+    report: Path | None = None,
+    adaptive_secondary: bool = False,
 ) -> dict:
     """Executa o reconhecedor completo, sem usar referência nem exportar XML."""
     if report is not None and report.exists():
@@ -22,18 +27,21 @@ def probe_pdf(
     loaded_seconds = perf_counter() - started
     started = perf_counter()
     try:
-        result = transcribe_page(
-            image,
-            layout="solo",
-            page_number=page_number,
-            instrument=Instrument.flute(),
-        )
+        options = {
+            "layout": "solo",
+            "page_number": page_number,
+            "instrument": Instrument.flute(),
+        }
+        if adaptive_secondary:
+            options["adaptive_secondary"] = True
+        result = transcribe_page(image, **options)
     except (OSError, ValueError) as exc:
         payload = {
             "format_version": 1,
             "source_pdf": source.name,
             "page_number": page_number,
             "dpi": dpi,
+            "experimental_adaptive_secondary": adaptive_secondary,
             "status": "processing_failed",
             "error": str(exc),
             "image_load_seconds": round(loaded_seconds, 4),
@@ -58,6 +66,7 @@ def probe_pdf(
             "source_pdf": source.name,
             "page_number": page_number,
             "dpi": dpi,
+            "experimental_adaptive_secondary": adaptive_secondary,
             "status": "diagnostic_only",
             "staff_results": list(result.staff_results),
             "staff_count": len(result.staff_results),
@@ -124,10 +133,19 @@ def main() -> None:
     parser.add_argument("--page", type=int, default=1)
     parser.add_argument("--dpi", type=int, default=200)
     parser.add_argument("--report", type=Path, required=True)
+    parser.add_argument(
+        "--adaptive-secondary",
+        action="store_true",
+        help="Perfiles de bandas: experimental, desativado por padrão",
+    )
     args = parser.parse_args()
     try:
         result = probe_pdf(
-            args.pdf, page_number=args.page, dpi=args.dpi, report=args.report
+            args.pdf,
+            page_number=args.page,
+            dpi=args.dpi,
+            report=args.report,
+            adaptive_secondary=args.adaptive_secondary,
         )
     except (OSError, ValueError, TypeError) as exc:
         parser.exit(2, f"{exc}\n")

@@ -89,6 +89,12 @@ jobs:
             outputs/real_scores/mutopia-bwv1013/source.pdf \
             --page 1 --dpi 200 --adaptive-secondary \
             --report outputs/real_scores/mutopia-bwv1013/adaptive-probe-200.json
+      - name: Comparar cobertura baseline vs adaptativo (sem precisão musical)
+        run: |
+          python -m tools.compare_adaptive_probes \
+            outputs/real_scores/mutopia-bwv1013/music-probe.json \
+            outputs/real_scores/mutopia-bwv1013/adaptive-probe-200.json \
+            --report outputs/real_scores/mutopia-bwv1013/adaptive-ab-200.json
       - name: Preservar PDFs publicados e evidências privadas temporárias
         if: always()
         uses: actions/upload-artifact@v4

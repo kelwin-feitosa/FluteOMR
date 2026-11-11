@@ -109,7 +109,25 @@ def parse_reference(xml: bytes) -> tuple[tuple[MeasureEvents, ...], ...]:
                 ):
                     raise ValueError("nota de referência incompleta")
                 alter = pitch.findtext("alter")
-                unsupported = "chromatic_alteration" if alter is not None else None
+                unsupported = None
+                note_type = note.findtext("type")
+                if note_type is not None and note_type not in (
+                    "eighth",
+                    "quarter",
+                    "half",
+                ):
+                    unsupported = "unsupported_note_type"
+                if (
+                    note.find("time-modification") is not None
+                    or note.find("notations/tuplet") is not None
+                ):
+                    unsupported = "tuplet"
+                if note.find("dot") is not None:
+                    unsupported = "augmentation_dot"
+                # Um acidente de cortesia/natural pode estar desenhado mesmo
+                # quando o MusicXML não contém <pitch><alter>.
+                if alter is not None or note.find("accidental") is not None:
+                    unsupported = "chromatic_alteration"
                 if (
                     note.find("tie") is not None
                     or note.find("notations/tied") is not None

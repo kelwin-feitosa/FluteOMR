@@ -11,6 +11,7 @@ from typing import Literal
 from PIL import Image
 
 from fluteomr.image_io import normalize_image
+from fluteomr.music import BeamPosition
 from fluteomr.notes import NoteheadObservation, _ink_without_staff
 from fluteomr.staff_detection import Region, Staff
 from fluteomr.symbols import BarlineCandidate, StemCandidate, head_id
@@ -24,6 +25,8 @@ class RhythmEvidence:
     status: Literal["accepted", "inconclusive"]
     beam_position: Literal["begin", "continue", "end"] | None = None
     reason: str = ""
+    # Níveis explícitos só aparecem quando a geometria sustenta grupo misto.
+    beam_levels: tuple[tuple[int, BeamPosition], ...] = ()
 
 
 def _stem_tip(
@@ -172,6 +175,7 @@ def detect_rhythm_evidence(
     connections: dict[str, set[str]] = {stem.id: set() for stem, _ in linked}
     secondary_connections: dict[str, set[str]] = {stem.id: set() for stem, _ in linked}
     ambiguous_secondary: set[str] = set()
+    weak_secondary: set[str] = set()
     radius = max(2, round(0.32 * staff.spacing))
     for (first, first_head), (second, second_head) in zip(
         linked, linked[1:], strict=False
@@ -227,10 +231,16 @@ def detect_rhythm_evidence(
             # Uma marca secundária interrompida pode ser um feixe curto
             # (hook). Não exportar a relação como colcheia sem revisão.
             ambiguous_secondary.update((first.id, second.id))
+        elif secondary_support >= 0.18:
+            # Só bloqueia INFERÊNCIA DE GRUPO MISTO caso haja também um
+            # segundo feixe confirmado em outro par desse mesmo grupo.
+            # Evita alterar grupos simples que antes não tinham evidência.
+            weak_secondary.update((first.id, second.id))
         connections[first.id].add(second.id)
         connections[second.id].add(first.id)
     groups = {}
     accepted_double: set[str] = set()
+    accepted_mixed: set[str] = set()
     uncertain_double: set[str] = set()
     for stem, _ in linked:
         if stem.id in groups or not connections[stem.id]:
@@ -245,16 +255,26 @@ def detect_rhythm_evidence(
         group = frozenset(members)
         groups.update({member: group for member in group})
         secondary_present = any(secondary_connections[member] for member in group)
-        if secondary_present or group & ambiguous_secondary:
-            # Um único par com dois feixes NÃO é evidência suficiente para
-            # dar duração de semicolcheia a todos os membros do grupo.
-            # Os feixes parciais (mistura de 8th/16th) exigem modelagem própria.
-            if not group & ambiguous_secondary and all(
+        if group & ambiguous_secondary:
+            uncertain_double.update(group)
+        elif secondary_present:
+            # Um segundo feixe só é suficiente para as hastes que toca.
+            # Os outros pares devem estar CLARAMENTE sem uma segunda linha.
+            # Traços fracos podem ser hooks, interrupções ou imagem degradada.
+            if group & weak_secondary:
+                uncertain_double.update(group)
+            elif all(
                 secondary_connections[member] == connections[member]
                 and 1 <= len(connections[member]) <= 2
                 for member in group
             ):
                 accepted_double.update(group)
+            elif all(
+                len(connections[member]) <= 2
+                and secondary_connections[member] <= connections[member]
+                for member in group
+            ):
+                accepted_mixed.update(group)
             else:
                 uncertain_double.update(group)
     evidence = []
@@ -298,7 +318,39 @@ def detect_rhythm_evidence(
                 and linked[index + 1][0].id in connections[stem.id]
             )
             position = "continue" if left and right else "end" if left else "begin"
-            if stem.id in accepted_double:
+            if stem.id in accepted_mixed:
+                secondary_left = (
+                    index > 0
+                    and linked[index - 1][0].id in secondary_connections[stem.id]
+                )
+                secondary_right = (
+                    index + 1 < len(linked)
+                    and linked[index + 1][0].id in secondary_connections[stem.id]
+                )
+                secondary_position = (
+                    "continue"
+                    if secondary_left and secondary_right
+                    else "end"
+                    if secondary_left
+                    else "begin"
+                    if secondary_right
+                    else None
+                )
+                levels: tuple[tuple[int, BeamPosition], ...] = ((1, position),)
+                if secondary_position is not None:
+                    levels = (*levels, (2, secondary_position))
+                evidence.append(
+                    RhythmEvidence(
+                        stem.head_id,
+                        "double_beam" if secondary_position else "beam",
+                        region,
+                        "accepted",
+                        position,
+                        "verified_partial_secondary_group",
+                        beam_levels=levels,
+                    )
+                )
+            elif stem.id in accepted_double:
                 evidence.append(
                     RhythmEvidence(
                         stem.head_id,

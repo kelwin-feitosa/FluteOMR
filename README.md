@@ -156,6 +156,32 @@ um sandbox para a biblioteca nativa de PDF.
 A decisão e as dependências estão em
 [`docs/decisions/0020-pdf-raster-input.md`](docs/decisions/0020-pdf-raster-input.md).
 
+## Preparação de páginas reais para revisão musical
+
+A CLI abaixo **apenas rasteriza** uma página PDF para PNG e registra os hashes
+SHA-256, DPI, número da página e licença declarada pelo usuário em JSON.
+Ela não inventa transcrição nem declara validação humana.
+
+```bash
+python -m tools.extract_pdf_page partitura.pdf \
+  --page-number 1 --dpi 200 \
+  --output outputs/real/pagina-1.png \
+  --metadata outputs/real/pagina-1.json
+```
+
+Os arquivos são criados sem sobrescrever outros. `--source-url` e
+`--license-id` são campos opcionais declarados pelo usuário, não verificados
+automaticamente. Para gerar um pacote revisável, use
+`python -m tools.music_review prepare` depois de conferir o recorte e os
+limites de compasso; nenhuma confirmação humana é automática.
+
+Novos pacotes de revisão incluem `image_sha256` no manifesto. O validador
+compara hashes **declarados** entre manifestos e também impede que o manifesto
+e a revisão indiquem hashes divergentes. Isso não certifica a autenticidade
+de todos os arquivos ou a correção musical. Consulte
+[`docs/corpus-sources.md`](docs/corpus-sources.md) para critérios de licença,
+etapas de revisão e fontes candidatas.
+
 ## Demonstração local e API
 
 Com o ambiente ativado, execute da raiz:

@@ -75,8 +75,17 @@ def benchmark_shape(
         (x, y)
         for degree in range(-4, 13)
         for y in range(
-            round(staff.lines[-1].y - degree * staff.spacing / 2 - 0.12 * staff.spacing),
-            round(staff.lines[-1].y - degree * staff.spacing / 2 + 0.12 * staff.spacing) + 1,
+            round(
+                staff.lines[-1].y
+                - degree * staff.spacing / 2
+                - 0.12 * staff.spacing
+            ),
+            round(
+                staff.lines[-1].y
+                - degree * staff.spacing / 2
+                + 0.12 * staff.spacing
+            )
+            + 1,
         )
         for x in range(left, right, step)
         if ry <= y < image.height - ry

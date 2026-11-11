@@ -101,3 +101,38 @@ ao impresso; documentar páginas/compassos/edição; submeter a revisão humana;
 medir cobertura e erros do reconhecedor para o subconjunto suportado.
 Se não houver evidência suficiente, continuar registrando falhas e evitando
 exportação musical não verificada.
+
+
+## Diagnóstico musical de página publicada — sem referência independente
+
+No [Actions #13](https://github.com/kelwin-feitosa/FluteOMR/actions/runs/43017334483), o programa `tools.real_music_probe` executou
+o motor próprio de OMR **sobre a página 1 completa** do PDF BWV 1013, a
+**200 DPI**, sem ler referência MusicXML e sem produzir exportação final:
+
+| Indicador observável | Resultado |
+| --- | ---: |
+| Pautas detectadas | 11 |
+| Compassos *propostos* pelo motor | 22 |
+| Eventos de nota *propostos* | 412 |
+| Predições com altura numérica | 402 |
+| Predições com duração determinada | 72 |
+| Predições sem duração determinada | 340 |
+| Diagnósticos registrados | 39 |
+| Tempo de inferência na máquina virtual do GitHub | 93,3802 s |
+| Precisão musical | **não avaliada** |
+
+**402 alturas calculadas não significam 402 alturas corretas.** Não existe
+ground truth MusicXML correspondente e independente neste experimento.
+A maioria dos eventos identificados não tem duração resolvida (340/412),
+em parte porque a partitura contém grupos de semicolcheias, fora do
+subconjunto de duração implementado. O motor preservou a incerteza. Nenhum
+MusicXML foi exportado por essa sonda.
+
+O resultado evidencia duas prioridades: (1) tratar durações de alta densidade
+(semicolcheias, feixes duplos e posições provisórias) sem fabricar ritmos, e
+(2) investigar o custo computacional do pipeline em página inteira. O tempo de
+93 s foi medido em um runner do GitHub, não no computador do usuário.
+
+Essa sonda **não fornece precisão nem taxa de erro**, pois não há comparação
+com referência musical independente; fornece cobertura provisória e tempo
+de execução sobre obra publicada.

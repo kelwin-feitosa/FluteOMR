@@ -2,6 +2,7 @@
 
 import argparse
 import json
+from collections import Counter
 from pathlib import Path
 from time import perf_counter
 
@@ -48,6 +49,12 @@ def probe_pdf(
             for note in measure.notes
         ]
         problems = result.score.issues()
+        unknown_durations = [note for note in notes if note.duration is None]
+        evidence_counts = Counter(
+            diagnostic
+            for note in unknown_durations
+            for diagnostic in note.diagnostics
+        )
         payload = {
             "format_version": 1,
             "source_pdf": source.name,
@@ -59,8 +66,10 @@ def probe_pdf(
             "predicted_measures": sum(len(p.measures) for p in result.score.parts),
             "predicted_events": len(notes),
             "resolved_pitch_events": sum(note.pitch is not None for note in notes),
-            "resolved_duration_events": sum(
-                note.duration is not None for note in notes
+            "resolved_duration_events": len(notes) - len(unknown_durations),
+            "unresolved_duration_events": len(unknown_durations),
+            "unresolved_duration_diagnostic_counts": dict(
+                sorted(evidence_counts.items())
             ),
             "issues": list(problems),
             "issue_count": len(problems),

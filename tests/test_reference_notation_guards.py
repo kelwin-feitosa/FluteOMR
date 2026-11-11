@@ -4,9 +4,68 @@ from xml.etree import ElementTree as ET
 
 import pytest
 
+from fluteomr.music import (
+    Clef,
+    Duration,
+    Measure,
+    MusicPart,
+    MusicScore,
+    Note,
+    Pitch,
+    TimeSignature,
+)
 from fluteomr.music_evaluation import evaluate_music, parse_reference
+from fluteomr.staff_detection import Region
 
-from test_music_evaluation import _score, _xml
+
+def _xml(measures):
+    root = ET.Element("score-partwise")
+    part = ET.SubElement(root, "part", id="P1")
+    for index, notes in enumerate(measures, 1):
+        measure = ET.SubElement(part, "measure", number=str(index))
+        ET.SubElement(ET.SubElement(measure, "attributes"), "divisions").text = "2"
+        for step, octave, duration, alteration in notes:
+            note = ET.SubElement(measure, "note")
+            pitch = ET.SubElement(note, "pitch")
+            ET.SubElement(pitch, "step").text = step
+            ET.SubElement(pitch, "octave").text = str(octave)
+            if alteration is not None:
+                ET.SubElement(pitch, "alter").text = str(alteration)
+            ET.SubElement(note, "duration").text = str(duration)
+    return ET.tostring(root)
+
+
+def _score(measures):
+    measure_objects = tuple(
+        Measure(
+            index,
+            tuple(
+                Note(
+                    Pitch(step, octave),
+                    Duration(duration),
+                    Region(0, 0, 10, 10),
+                    0,
+                    "filled",
+                )
+                for step, octave, duration in notes
+            ),
+            TimeSignature(4, 4, "configuration"),
+            "configuration",
+        )
+        for index, notes in enumerate(measures, 1)
+    )
+    return MusicScore(
+        (
+            MusicPart(
+                "P1",
+                "Flauta",
+                "configuration",
+                (0,),
+                Clef("treble", "configuration"),
+                measure_objects,
+            ),
+        )
+    )
 
 
 def _notation_xml(measures, *, key=None, time=None, clef=None, reset_key=None):

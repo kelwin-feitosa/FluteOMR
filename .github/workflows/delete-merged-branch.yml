@@ -1,0 +1,34 @@
+name: Limpar branch após merge confirmado
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref != 'main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: true
+      - name: Remover somente a branch integrada deste PR
+        env:
+          TARGET_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          # Nome vem do PR integrado do mesmo repositório, nunca de forks.
+          # A sintaxe refs/heads não permite interpretar um nome como opção CLI.
+          if git ls-remote --heads origin "refs/heads/$TARGET_BRANCH" | grep -q .; then
+            git push origin ":refs/heads/$TARGET_BRANCH"
+            echo "Deleted merged branch: $TARGET_BRANCH"
+          else
+            echo "Branch already removed: $TARGET_BRANCH"
+          fi

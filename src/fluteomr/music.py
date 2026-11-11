@@ -17,11 +17,16 @@ class Pitch:
 
 @dataclass(frozen=True)
 class Duration:
-    kind: Literal["eighth", "quarter", "half"]
+    kind: Literal["sixteenth", "eighth", "quarter", "half"]
 
     @property
     def quarters(self) -> Fraction:
-        return {"eighth": Fraction(1, 2), "quarter": Fraction(1), "half": Fraction(2)}[
+        return {
+            "sixteenth": Fraction(1, 4),
+            "eighth": Fraction(1, 2),
+            "quarter": Fraction(1),
+            "half": Fraction(2),
+        }[
             self.kind
         ]
 
@@ -120,22 +125,31 @@ class Measure:
                     f"measure_duration_mismatch:{total}/{self.time_signature.measure_quarters}"
                 )
         beam_open = False
+        active_kind = None
         for index, note in enumerate(self.notes):
-            if note.beam is not None and (
-                note.duration is None or note.duration.kind != "eighth"
-            ):
+            kind = note.duration.kind if note.duration else None
+            if note.beam is not None and kind not in ("eighth", "sixteenth"):
+                # Mantém o diagnóstico legado para clientes existentes.
                 problems.append(f"beam_requires_eighth:note={index}")
             if note.beam == "begin":
                 if beam_open:
                     problems.append(f"beam_restarted:note={index}")
                 beam_open = True
+                active_kind = kind
             elif note.beam in ("continue", "end"):
                 if not beam_open:
                     problems.append(f"beam_without_begin:note={index}")
+                elif kind is not None and active_kind is not None and kind != active_kind:
+                    # Um grupo misto exigiria feixes secundários parciais.
+                    # O modelo atual preserva somente grupos homogêneos.
+                    problems.append(f"mixed_beam_durations:note={index}")
                 beam_open = note.beam != "end"
+                if not beam_open:
+                    active_kind = None
             elif beam_open:
                 problems.append(f"beam_interrupted:note={index}")
                 beam_open = False
+                active_kind = None
         if beam_open:
             problems.append("beam_without_end")
         return tuple(problems)

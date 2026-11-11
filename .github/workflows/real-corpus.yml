@@ -77,8 +77,42 @@ jobs:
           head -n 75 outputs/real_scores/mutopia-bwv1013/cpu-profile.txt
           # 1 = falha de transcrição documentada, não erro da aquisição.
           if [ "$status" -ne 0 ] && [ "$status" -ne 1 ]; then exit "$status"; fi
+      - name: Baseline padrão — BWV 1013, 150 DPI
+        run: |
+          python -m tools.real_music_probe \
+            outputs/real_scores/mutopia-bwv1013/source.pdf \
+            --page 1 --dpi 150 \
+            --report outputs/real_scores/mutopia-bwv1013/music-probe-150.json
+      - name: Perfil secundário adaptativo EXPERIMENTAL — BWV 1013, 150 DPI
+        run: |
+          python -m tools.real_music_probe \
+            outputs/real_scores/mutopia-bwv1013/source.pdf \
+            --page 1 --dpi 150 --adaptive-secondary \
+            --report outputs/real_scores/mutopia-bwv1013/adaptive-probe-150.json
+      - name: Perfil secundário adaptativo EXPERIMENTAL — BWV 1013, 200 DPI
+        run: |
+          python -m tools.real_music_probe \
+            outputs/real_scores/mutopia-bwv1013/source.pdf \
+            --page 1 --dpi 200 --adaptive-secondary \
+            --report outputs/real_scores/mutopia-bwv1013/adaptive-probe-200.json
+      - name: Comparar cobertura a 150 DPI (mesmo PDF e imagem)
+        run: |
+          python -m tools.compare_adaptive_probes \
+            outputs/real_scores/mutopia-bwv1013/music-probe-150.json \
+            outputs/real_scores/mutopia-bwv1013/adaptive-probe-150.json \
+            --report outputs/real_scores/mutopia-bwv1013/adaptive-ab-150.json
+      - name: Comparar cobertura baseline vs adaptativo (sem precisão musical)
+        run: |
+          python -m tools.compare_adaptive_probes \
+            outputs/real_scores/mutopia-bwv1013/music-probe.json \
+            outputs/real_scores/mutopia-bwv1013/adaptive-probe-200.json \
+            --report outputs/real_scores/mutopia-bwv1013/adaptive-ab-200.json
       - name: Preservar PDFs publicados e evidências privadas temporárias
-        if: always()
+        # Upload experimental opcional. O serviço de artefatos falhou na
+        # finalização apesar de todos os relatórios serem gerados com sucesso.
+        # Evita bloquear o PR por um erro externo e demorado de armazenamento.
+        if: github.event_name == 'workflow_dispatch'
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: public-domain-flute-scores-geometry

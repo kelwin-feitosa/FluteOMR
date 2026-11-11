@@ -72,6 +72,7 @@ def test_real_probe_counts_unresolved_events_and_never_tries_xml(tmp_path, monke
     assert result["resolved_duration_events"] == 0
     assert result["resolved_duration_kind_counts"] == {}
     assert result["predicted_double_beam_sixteenths"] == 0
+    assert result["rejected_invalid_beam_group_count"] == 0
     assert result["confirmed_mixed_beam_note_count"] == 0
     assert result["confirmed_mixed_beam_duration_counts"] == {}
     assert result["unresolved_duration_events"] == 1
@@ -104,3 +105,64 @@ def test_real_probe_records_transcription_failure_without_fabricating_accuracy(
     assert result["error"] == "clave incerta"
     assert result["musical_accuracy"] == "not_evaluated"
     assert result["xml_export"] == "not_attempted"
+
+
+def test_probe_provenance_hashes_same_page_and_distinguishes_source(
+    tmp_path, monkeypatch
+):
+    import hashlib
+
+    pdf = tmp_path / "published.pdf"
+    pdf.write_bytes(b"%PDF-1.7\\ncontrolled-test-bytes")
+    monkeypatch.setattr(
+        real_music_probe,
+        "load_pdf_page",
+        lambda *_args, **_kwargs: Image.new("RGB", (160, 120), "white"),
+    )
+    monkeypatch.setattr(
+        real_music_probe,
+        "transcribe_page",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            score=_score_with_uncertain_duration(),
+            staff_results=({"status": "incomplete"},),
+        ),
+    )
+    baseline = real_music_probe.probe_pdf(pdf)
+    adaptive = real_music_probe.probe_pdf(pdf, adaptive_secondary=True)
+    expected = hashlib.sha256(pdf.read_bytes()).hexdigest()
+    assert baseline["source_pdf_sha256"] == adaptive["source_pdf_sha256"] == expected
+    assert baseline["page_image_sha256"] == adaptive["page_image_sha256"]
+    assert baseline["page_image_size"] == [160, 120]
+    assert baseline["format_version"] == adaptive["format_version"] == 2
+
+    pdf.write_bytes(b"%PDF-1.7\\nchanged-source-bytes")
+    changed = real_music_probe.probe_pdf(pdf)
+    assert changed["source_pdf_sha256"] != baseline["source_pdf_sha256"]
+
+
+def test_probe_adaptive_secondary_is_explicit_and_never_default(tmp_path, monkeypatch):
+    seen = []
+    monkeypatch.setattr(
+        real_music_probe,
+        "load_pdf_page",
+        lambda *_args, **_kwargs: Image.new("RGB", (160, 120), "white"),
+    )
+
+    def fake_page(*_args, **kwargs):
+        seen.append(kwargs)
+        return SimpleNamespace(
+            score=_score_with_uncertain_duration(),
+            staff_results=({"status": "incomplete"},),
+        )
+
+    monkeypatch.setattr(real_music_probe, "transcribe_page", fake_page)
+    ordinary = real_music_probe.probe_pdf(tmp_path / "published.pdf")
+    adaptive = real_music_probe.probe_pdf(
+        tmp_path / "published.pdf", adaptive_secondary=True
+    )
+    assert ordinary["experimental_adaptive_secondary"] is False
+    assert adaptive["experimental_adaptive_secondary"] is True
+    assert "adaptive_secondary" not in seen[0]
+    assert seen[1]["adaptive_secondary"] is True
+    assert ordinary["musical_accuracy"] == "not_evaluated"
+    assert adaptive["musical_accuracy"] == "not_evaluated"

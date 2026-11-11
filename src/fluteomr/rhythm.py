@@ -91,6 +91,67 @@ def _stripe_support(
     return (hits / samples if samples else 0.0), longest_gap
 
 
+def _adaptive_secondary_profile(
+    ink: bytearray,
+    width: int,
+    height: int,
+    a: tuple[int, int],
+    b: tuple[int, int],
+    direction: int,
+    spacing: float,
+) -> tuple[str, int | None]:
+    """Busca DUAS bandas paralelas completas separadas por um vale vazio.
+
+    Experimentação opcional: a distância entre os centros é determinada
+    pela própria tinta, e não pelo offset fixo do reconhecedor estável.
+    Não atribui nota nem duração sem verificar o grupo musical inteiro.
+    """
+    minimum_distance = max(3, round(0.34 * spacing))
+    maximum_offset = max(minimum_distance + 2, round(1.35 * spacing))
+    search_primary = max(2, round(0.38 * spacing))
+    thin_radius = 0
+    supports = [
+        _stripe_support(
+            ink,
+            width,
+            height,
+            a,
+            b,
+            thin_radius,
+            -direction * offset,
+        )
+        for offset in range(maximum_offset + 1)
+    ]
+    primary_offset = max(
+        range(search_primary + 1),
+        key=lambda idx: supports[idx][0],
+    )
+    if supports[primary_offset][0] < 0.70:
+        return "ambiguous", None
+    secondary = range(primary_offset + minimum_distance, maximum_offset + 1)
+    strongest = max((supports[index][0] for index in secondary), default=0.0)
+    # Cada faixa deve ser contínua ao longo da distância entre hastes.
+    for index in sorted(secondary, key=lambda item: supports[item][0], reverse=True):
+        coverage, gap = supports[index]
+        if coverage < 0.78 or gap > 1.2 * spacing:
+            break
+        if index - primary_offset < minimum_distance:
+            continue
+        # Cada pico precisa estar separado por pelo menos uma linha
+        # transversal com pouca tinta, longe das duas bandas.
+        valley = min(
+            (supports[pos][0] for pos in range(primary_offset + 1, index)),
+            default=1.0,
+        )
+        if valley <= 0.30:
+            return "confirmed", index - primary_offset
+    if strongest >= 0.50:
+        return "ambiguous", None
+    if strongest >= 0.18:
+        return "weak", None
+    return "absent", None
+
+
 def _flag_evidence(
     ink: bytearray,
     width: int,
@@ -157,6 +218,7 @@ def detect_rhythm_evidence(
     stems: tuple[StemCandidate, ...],
     staff_index: int = 0,
     barlines: tuple[BarlineCandidate, ...] = (),
+    adaptive_secondary: bool = False,
 ) -> tuple[RhythmEvidence, ...]:
     """Liga marcas às hastes; exige segundo feixe contínuo em todo o grupo."""
     if not stems:
@@ -199,43 +261,61 @@ def detect_rhythm_evidence(
         )
         if support < 0.78 or longest_gap > 1.2 * staff.spacing:
             continue
-        offset = -direction[first.id] * round(0.95 * staff.spacing)
-        secondary_support, secondary_gap = _stripe_support(
-            ink,
-            image.width,
-            image.height,
-            a,
-            b,
-            max(1, radius // 2),
-            offset,
-        )
-        if secondary_support >= 0.78 and secondary_gap <= 1.2 * staff.spacing:
-            # Um feixe grosso ou uma faixa mesclada não são dois feixes.
-            # Exigir um vale claro entre os dois traços amostrados, longe
-            # das hastes, evita promover paralelas que se tocam.
-            midpoint_support, _ = _stripe_support(
+        if adaptive_secondary:
+            status, _separation = _adaptive_secondary_profile(
                 ink,
                 image.width,
                 image.height,
                 a,
                 b,
-                max(1, round(0.08 * staff.spacing)),
-                -direction[first.id] * round(0.5 * staff.spacing),
+                direction[first.id],
+                staff.spacing,
             )
-            if midpoint_support <= 0.35:
+            if status == "confirmed":
                 secondary_connections[first.id].add(second.id)
                 secondary_connections[second.id].add(first.id)
-            else:
+            elif status == "ambiguous":
                 ambiguous_secondary.update((first.id, second.id))
-        elif secondary_support >= 0.55:
-            # Uma marca secundária interrompida pode ser um feixe curto
-            # (hook). Não exportar a relação como colcheia sem revisão.
-            ambiguous_secondary.update((first.id, second.id))
-        elif secondary_support >= 0.18:
-            # Só bloqueia INFERÊNCIA DE GRUPO MISTO caso haja também um
-            # segundo feixe confirmado em outro par desse mesmo grupo.
-            # Evita alterar grupos simples que antes não tinham evidência.
-            weak_secondary.update((first.id, second.id))
+            elif status == "weak":
+                weak_secondary.update((first.id, second.id))
+        else:
+            offset = -direction[first.id] * round(0.95 * staff.spacing)
+            secondary_support, secondary_gap = _stripe_support(
+                ink,
+                image.width,
+                image.height,
+                a,
+                b,
+                max(1, radius // 2),
+                offset,
+            )
+            if secondary_support >= 0.78 and secondary_gap <= 1.2 * staff.spacing:
+                # Um feixe grosso ou uma faixa mesclada não são dois feixes.
+                # Exigir um vale claro entre os dois traços amostrados, longe
+                # das hastes, evita promover paralelas que se tocam.
+                midpoint_support, _ = _stripe_support(
+                    ink,
+                    image.width,
+                    image.height,
+                    a,
+                    b,
+                    max(1, round(0.08 * staff.spacing)),
+                    -direction[first.id] * round(0.5 * staff.spacing),
+                )
+                if midpoint_support <= 0.35:
+                    secondary_connections[first.id].add(second.id)
+                    secondary_connections[second.id].add(first.id)
+                else:
+                    ambiguous_secondary.update((first.id, second.id))
+            elif secondary_support >= 0.55:
+                # Uma marca secundária interrompida pode ser um feixe curto
+                # (hook). Não exportar a relação como colcheia sem revisão.
+                ambiguous_secondary.update((first.id, second.id))
+            elif secondary_support >= 0.18:
+                # Só bloqueia INFERÊNCIA DE GRUPO MISTO caso haja também um
+                # segundo feixe confirmado em outro par desse mesmo grupo.
+                # Evita alterar grupos simples que antes não tinham evidência.
+                weak_secondary.update((first.id, second.id))
         connections[first.id].add(second.id)
         connections[second.id].add(first.id)
     groups = {}

@@ -2,7 +2,7 @@
 
 from xml.etree import ElementTree as ET
 
-from fluteomr.music import MusicScore
+from fluteomr.music import MusicScore, note_beam_levels
 
 
 def to_musicxml(score: MusicScore) -> bytes:
@@ -63,12 +63,10 @@ def to_musicxml(score: MusicScore) -> bytes:
                 ET.SubElement(note_element, "type").text = (
                     "16th" if note.duration.kind == "sixteenth" else note.duration.kind
                 )
-                if note.beam is not None:
-                    ET.SubElement(note_element, "beam", number="1").text = note.beam
-                    if note.duration.kind == "sixteenth":
-                        # Suportamos apenas grupos inteiros com segundo feixe
-                        # contínuo, não os feixes parciais de grupos mistos.
-                        ET.SubElement(note_element, "beam", number="2").text = note.beam
+                for level, position in note_beam_levels(note):
+                    ET.SubElement(
+                        note_element, "beam", number=str(level)
+                    ).text = position
     xml = ET.tostring(root, encoding="utf-8", xml_declaration=True)
     return xml.replace(
         b"?>",
@@ -124,3 +122,7 @@ def _validate_supported_model(score: MusicScore) -> None:
                     raise ValueError("duração não suportada pelo exportador")
                 if note.beam not in (None, "begin", "continue", "end"):
                     raise ValueError("feixe não suportado pelo exportador")
+                if not isinstance(note.beam_levels, tuple):
+                    raise ValueError("níveis de feixe precisam ser uma tupla")
+                # Score.issues() verifica as conexões e os hooks. O exportador
+                # nunca converte valores inválidos em feixes aproximados.

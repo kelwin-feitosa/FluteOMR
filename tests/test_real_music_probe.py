@@ -26,6 +26,7 @@ def _score_with_uncertain_duration():
         Region(20, 20, 28, 26),
         0,
         "filled",
+        diagnostics=("double_beam", "parallel_beam_unsupported"),
     )
     measure = Measure(
         1,
@@ -69,6 +70,11 @@ def test_real_probe_counts_unresolved_events_and_never_tries_xml(tmp_path, monke
     assert result["predicted_events"] == 1
     assert result["resolved_pitch_events"] == 1
     assert result["resolved_duration_events"] == 0
+    assert result["unresolved_duration_events"] == 1
+    assert result["unresolved_duration_diagnostic_counts"] == {
+        "double_beam": 1,
+        "parallel_beam_unsupported": 1,
+    }
     assert result["issue_count"] > 0
     assert result["musical_accuracy"] == "not_evaluated"
     assert result["xml_export"] == "not_attempted"

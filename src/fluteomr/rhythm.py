@@ -170,9 +170,7 @@ def detect_rhythm_evidence(
         stem.id: -1 if stem.region.left > head.center_x else 1 for stem, head in linked
     }
     connections: dict[str, set[str]] = {stem.id: set() for stem, _ in linked}
-    secondary_connections: dict[str, set[str]] = {
-        stem.id: set() for stem, _ in linked
-    }
+    secondary_connections: dict[str, set[str]] = {stem.id: set() for stem, _ in linked}
     ambiguous_secondary: set[str] = set()
     radius = max(2, round(0.32 * staff.spacing))
     for (first, first_head), (second, second_head) in zip(

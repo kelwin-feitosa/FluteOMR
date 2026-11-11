@@ -30,7 +30,7 @@ jobs:
           url="https://gitlab.com/lilypond/lilypond/-/releases/v2.26.0/downloads/lilypond-2.26.0-linux-x86_64.tar.gz"
           archive="$RUNNER_TEMP/lilypond-2.26.0-linux-x86_64.tar.gz"
           curl -fL --retry 3 --retry-delay 2 --connect-timeout 30 --max-time 180 "$url" -o "$archive"
-          sha256sum "$archive"
+          echo "cd8a097a9f52cb2b9f4e7914774786f203f4fc61fcd299afcbb63c23fa5c6b24  $archive" | sha256sum --check --status
           mkdir -p "$RUNNER_TEMP/lilypond-runtime"
           tar -xzf "$archive" -C "$RUNNER_TEMP/lilypond-runtime"
           binary="$RUNNER_TEMP/lilypond-runtime/lilypond-2.26.0/bin/lilypond"

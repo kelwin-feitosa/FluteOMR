@@ -43,9 +43,12 @@ def test_coverage_delta_never_claims_music_accuracy():
         "adaptive": 3,
         "delta": 1,
     }
-    assert result["unresolved_diagnostic_comparison"][
-        "secondary_stripe_ambiguous"
-    ]["delta"] == -1
+    assert (
+        result["unresolved_diagnostic_comparison"]["secondary_stripe_ambiguous"][
+            "delta"
+        ]
+        == -1
+    )
     assert result["musical_accuracy"] == "not_evaluated"
     assert result["human_reviewed"] is False
     assert result["xml_export"] == "not_attempted"
@@ -104,6 +107,7 @@ def test_invalid_uncertainty_counts_rejected():
     with pytest.raises(ValueError, match="diagnósticos"):
         compare_probe_reports(_probe(False), adaptive)
 
+
 @pytest.mark.parametrize(
     ("field", "invalid"),
     [
@@ -122,6 +126,7 @@ def test_rejects_missing_or_malformed_image_provenance(field, invalid):
     adaptive[field] = invalid
     with pytest.raises(ValueError):
         compare_probe_reports(baseline, adaptive)
+
 
 def test_rejects_fabricated_duration_type_totals():
     adaptive = _probe(True)

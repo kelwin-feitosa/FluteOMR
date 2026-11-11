@@ -54,7 +54,10 @@ def load_catalog(path: Path) -> dict[str, dict]:
             raise CorpusSourceError("id de obra inseguro")
         if key in entries:
             raise CorpusSourceError(f"id duplicado: {key}")
-        if item.get("license") != "Public Domain dedication by typesetter (declared)":
+        if item.get("license") not in (
+            "Public Domain dedication by typesetter (declared)",
+            "Public Domain (Mutopia edition declaration)",
+        ):
             raise CorpusSourceError("fonte sem declaração permitida de domínio público")
         if not isinstance(item.get("rights_evidence_url"), str) or not item[
             "rights_evidence_url"

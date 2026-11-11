@@ -215,6 +215,32 @@ em 150/200/300 DPI, mas as métricas de precisão musical permanecem
 Exemplos de execução e proveniência: [baseline público de 11/11/2026](
 docs/public-domain-corpus-benchmark-2026-11-11.md).
 
+## Semicolcheias com feixes duplos completos (experimental)
+
+O motor agora reconhece **semicolcheias em grupos homogêneos** apenas quando
+dois feixes contínuos e separados por espaço claro ligam cada par de hastes
+confirmadas do grupo, sem barra de compasso intermediária. Ritmos mistos,
+feixes secundários parciais e padrões ambíguos continuam **inconclusivos**.
+É uma heurística geométrica, não um classificador já validado em produção.
+
+`Duration("sixteenth")` equivale a 1/4 de semínima. Para grupos confirmados,
+o MusicXML utiliza `type=16th`, `divisions=4` e dois níveis de
+`beam` (`number=1` e `number=2`), com begin/continue/end. Não são
+inventadas pausas para completar compassos.
+
+Teste na página 1 da Partita BWV 1013 publicada (200 DPI): 412 eventos
+propostos antes e depois; durações determinadas passaram de 72 a **82**,
+com dez novos candidatos de semicolcheia. **Isso não significa dez
+novas notas corretas**: não existe ground truth MusicXML independente
+revisado para essa edição. A classificação restante ainda inclui
+330 durações inconclusivas.
+
+O benchmark conservador é executado pelo workflow `real-corpus.yml`
+quando o algoritmo musical muda, além do CI usual. Detalhes, hipóteses,
+limitações e protocolo em
+[`docs/decisions/0024-sixteenth-beam-evidence.md`](
+docs/decisions/0024-sixteenth-beam-evidence.md).
+
 ## MuseScore como gerador opcional de imagens e mapas posicionais
 
 O MuseScore não é o motor OMR do projeto. A ferramenta

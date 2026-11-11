@@ -65,6 +65,21 @@ def probe_pdf(
             "predicted_events": len(notes),
             "resolved_pitch_events": sum(note.pitch is not None for note in notes),
             "resolved_duration_events": len(notes) - len(unknown_durations),
+            "resolved_duration_kind_counts": dict(
+                sorted(
+                    Counter(
+                        note.duration.kind
+                        for note in notes
+                        if note.duration is not None
+                    ).items()
+                )
+            ),
+            "predicted_double_beam_sixteenths": sum(
+                note.duration is not None
+                and note.duration.kind == "sixteenth"
+                and "double_beam" in note.diagnostics
+                for note in notes
+            ),
             "unresolved_duration_events": len(unknown_durations),
             "unresolved_duration_diagnostic_counts": dict(
                 sorted(evidence_counts.items())

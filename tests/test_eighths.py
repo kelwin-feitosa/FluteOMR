@@ -326,7 +326,7 @@ def test_full_page_without_manual_crop_keeps_note_coordinates():
     assert score.issues() == ()
 
 
-def test_double_beam_is_inconclusive():
+def test_complete_double_beam_group_is_four_sixteenths_in_one_quarter():
     image = _page(
         (
             (145, 9, "eighth", "down"),
@@ -337,15 +337,33 @@ def test_double_beam_is_inconclusive():
         beam_groups=((0, 1, 2, 3),),
         double=True,
     )
-    score = _score(image)
-    assert len(score.parts[0].measures[0].notes) == 4
-    assert "unknown_duration" in score.issues()
-    assert all(note.duration is None for note in score.parts[0].measures[0].notes)
-    assert all(
-        "double_beam" in note.diagnostics for note in score.parts[0].measures[0].notes
-    )
-    with pytest.raises(ValueError, match="incompleta"):
-        to_musicxml(score)
+    score = transcribe_one_measure(image, measure_left=110, measure_right=410, beats=1)
+    notes = score.parts[0].measures[0].notes
+    assert len(notes) == 4
+    assert [note.duration.kind for note in notes] == ["sixteenth"] * 4
+    assert [note.beam for note in notes] == ["begin", "continue", "continue", "end"]
+    assert all("double_beam" in note.diagnostics for note in notes)
+    assert score.issues() == ()
+    xml = ET.fromstring(to_musicxml(score))
+    assert xml.findtext("./part/measure/attributes/divisions") == "4"
+    assert [n.findtext("duration") for n in xml.findall("./part/measure/note")] == [
+        "1",
+        "1",
+        "1",
+        "1",
+    ]
+    assert [n.findtext("type") for n in xml.findall("./part/measure/note")] == [
+        "16th",
+        "16th",
+        "16th",
+        "16th",
+    ]
+    for number in ("1", "2"):
+        beams = [
+            n.find(f"beam[@number='{number}']").text
+            for n in xml.findall("./part/measure/note")
+        ]
+        assert beams == ["begin", "continue", "continue", "end"]
 
 
 @pytest.mark.parametrize(

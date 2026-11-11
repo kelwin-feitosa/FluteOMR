@@ -70,6 +70,8 @@ def test_real_probe_counts_unresolved_events_and_never_tries_xml(tmp_path, monke
     assert result["predicted_events"] == 1
     assert result["resolved_pitch_events"] == 1
     assert result["resolved_duration_events"] == 0
+    assert result["resolved_duration_kind_counts"] == {}
+    assert result["predicted_double_beam_sixteenths"] == 0
     assert result["unresolved_duration_events"] == 1
     assert result["unresolved_duration_diagnostic_counts"] == {
         "double_beam": 1,

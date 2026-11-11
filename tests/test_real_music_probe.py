@@ -36,16 +36,18 @@ def _score_with_uncertain_duration():
     return MusicScore(
         (
             MusicPart(
-                "P1", "Flute", "configuration", (0,),
-                Clef("treble", "configuration"), (measure,),
+                "P1",
+                "Flute",
+                "configuration",
+                (0,),
+                Clef("treble", "configuration"),
+                (measure,),
             ),
         )
     )
 
 
-def test_real_probe_counts_unresolved_events_and_never_tries_xml(
-    tmp_path, monkeypatch
-):
+def test_real_probe_counts_unresolved_events_and_never_tries_xml(tmp_path, monkeypatch):
     monkeypatch.setattr(
         real_music_probe,
         "load_pdf_page",

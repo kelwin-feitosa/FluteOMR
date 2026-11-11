@@ -244,9 +244,7 @@ def main() -> None:
         parser.exit(2, f"{exc}\n")
     print(
         json.dumps(
-            {
-                key: value for key, value in result.items() if key != "cases"
-            },
+            {key: value for key, value in result.items() if key != "cases"},
             ensure_ascii=False,
             indent=2,
         )

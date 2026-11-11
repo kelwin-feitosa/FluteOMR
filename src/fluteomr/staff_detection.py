@@ -151,7 +151,10 @@ def _line_candidates(
     minimum = (
         width * fraction
         if narrow_page
-        else max(width * fraction, max(projection, default=0) * config.projection_peak_fraction)
+        else max(
+            width * fraction,
+            max(projection, default=0) * config.projection_peak_fraction,
+        )
     )
     bands: list[list[tuple[int, int, tuple[int, int]]]] = []
     for y, count in enumerate(projection):
@@ -313,7 +316,11 @@ def detect_staffs(
     # Otsu pode omitir bordas claras de linhas suavizadas. O ajuste relativo ao
     # tom mais frequente recupera essas bordas sem fixar intensidade em pixels.
     analysis_threshold = max(
-        threshold, round(threshold + config.contrast_adjust_fraction * (background - threshold))
+        threshold,
+        round(
+            threshold
+            + config.contrast_adjust_fraction * (background - threshold)
+        ),
     )
     pixels = gray.tobytes()
     binary = pixels.translate(bytes(int(i <= analysis_threshold) for i in range(256)))

@@ -6,6 +6,7 @@ Não substitui ground truth independente nem revisão humana.
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 
@@ -26,6 +27,8 @@ def compare_probe_reports(baseline: dict, adaptive: dict) -> dict:
     ):
         if report.get("status") != "diagnostic_only":
             raise ValueError(f"{label}: transcrição não foi concluída")
+        if report.get("format_version") != 2:
+            raise ValueError(f"{label}: formato da sonda sem proveniência completa")
         if report.get("experimental_adaptive_secondary") is not enabled:
             raise ValueError(f"{label}: modo de reconhecimento incorreto")
         if report.get("musical_accuracy") != "not_evaluated":
@@ -42,11 +45,33 @@ def compare_probe_reports(baseline: dict, adaptive: dict) -> dict:
         if not isinstance(report.get("unresolved_duration_diagnostic_counts"), dict):
             raise ValueError(f"{label}: diagnósticos ausentes")
 
-    coordinates = ("source_pdf", "page_number", "dpi")
+    coordinates = (
+        "source_pdf",
+        "source_pdf_sha256",
+        "page_image_sha256",
+        "page_image_size",
+        "page_number",
+        "dpi",
+    )
     if any(baseline.get(key) != adaptive.get(key) for key in coordinates):
-        raise ValueError("relatórios não correspondem à mesma página e DPI")
+        raise ValueError("relatórios não correspondem à mesma imagem e DPI")
     if not isinstance(baseline.get("source_pdf"), str) or not baseline["source_pdf"]:
         raise ValueError("identificação do PDF ausente")
+    for key in ("source_pdf_sha256", "page_image_sha256"):
+        value = baseline.get(key)
+        if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None:
+            raise ValueError(f"proveniência SHA-256 obrigatória: {key}")
+    size = baseline.get("page_image_size")
+    if (
+        not isinstance(size, list)
+        or len(size) != 2
+        or any(type(dimension) is not int or dimension <= 0 for dimension in size)
+    ):
+        raise ValueError("dimensões da imagem ausentes ou inválidas")
+    for key in ("page_number", "dpi"):
+        value = baseline.get(key)
+        if type(value) is not int or value <= 0:
+            raise ValueError(f"parâmetro inválido: {key}")
 
     metrics = (
         "predicted_events",
@@ -74,9 +99,12 @@ def compare_probe_reports(baseline: dict, adaptive: dict) -> dict:
         reasons[name] = {"baseline": old, "adaptive": new, "delta": new - old}
 
     return {
-        "format_version": 1,
+        "format_version": 2,
         "experiment": "adaptive_secondary_beam_profile",
         "source_pdf": baseline["source_pdf"],
+        "source_pdf_sha256": baseline["source_pdf_sha256"],
+        "page_image_sha256": baseline["page_image_sha256"],
+        "page_image_size": baseline["page_image_size"],
         "page_number": baseline["page_number"],
         "dpi": baseline["dpi"],
         "coverage_comparison": changes,

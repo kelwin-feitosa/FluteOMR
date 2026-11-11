@@ -9,9 +9,7 @@ from fluteomr.notes import (
     _offset_spans,
     _shape,
     _shape_from_prefix,
-    detect_noteheads,
 )
-from fluteomr.staff_detection import Region, Staff, StaffLine
 
 
 def _masks(rx, ry):

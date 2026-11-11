@@ -100,3 +100,17 @@ como precisão): 82/412 durações resolvidas no padrão, 280/412 no
 adaptativo; 10 e 208 semicolcheias propostas, respectivamente.
 Essa diferença de cobertura pode incluir falsos positivos e exige
 revisão visual independente antes de qualquer ativação por padrão.
+
+## Infraestrutura de artefatos
+
+Em uma execução anterior da BWV 1013, os cálculos e sondas concluíram,
+mas `actions/upload-artifact@v4` falhou ao finalizar o ZIP, recebendo
+HTML onde se esperava JSON após cinco tentativas. Isso é diferente de
+uma falha de reconhecimento musical. Para PRs, não há upload pesado:
+os relatórios A/B são impressos nos logs do job e o catálogo mantém
+proveniência reproduzível. O upload de PDFs/imagens está disponível
+somente em `workflow_dispatch` e é `continue-on-error`.
+
+A revisão de recortes anotados é feita em workflow separado. O resultado
+experimental em PR deve ser avaliado nos logs; não afirmar que foi
+publicado um artefato ZIP se a finalização falhar.

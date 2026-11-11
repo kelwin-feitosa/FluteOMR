@@ -108,7 +108,11 @@ jobs:
             outputs/real_scores/mutopia-bwv1013/adaptive-probe-200.json \
             --report outputs/real_scores/mutopia-bwv1013/adaptive-ab-200.json
       - name: Preservar PDFs publicados e evidências privadas temporárias
-        if: always()
+        # Upload experimental opcional. O serviço de artefatos falhou na
+        # finalização apesar de todos os relatórios serem gerados com sucesso.
+        # Evita bloquear o PR por um erro externo e demorado de armazenamento.
+        if: github.event_name == 'workflow_dispatch'
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: public-domain-flute-scores-geometry

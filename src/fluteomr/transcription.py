@@ -65,6 +65,7 @@ def _interpret_notes(image, staff, threshold, heads, barlines=()):
                         "sixteenth" if mark.kind == "double_beam" else "eighth"
                     ),
                     beam=mark.beam_position,
+                    beam_levels=mark.beam_levels,
                     diagnostics=(*note.diagnostics, mark.kind),
                 )
             )

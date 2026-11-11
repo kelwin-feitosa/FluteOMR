@@ -129,13 +129,9 @@ def _adaptive_secondary_profile(
     if supports[primary_offset][0] < 0.70:
         return "ambiguous", None
     secondary = range(primary_offset + minimum_distance, maximum_offset + 1)
-    strongest = max(
-        (supports[index][0] for index in secondary), default=0.0
-    )
+    strongest = max((supports[index][0] for index in secondary), default=0.0)
     # Cada faixa deve ser contínua ao longo da distância entre hastes.
-    for index in sorted(
-        secondary, key=lambda item: supports[item][0], reverse=True
-    ):
+    for index in sorted(secondary, key=lambda item: supports[item][0], reverse=True):
         coverage, gap = supports[index]
         if coverage < 0.78 or gap > 1.2 * spacing:
             break

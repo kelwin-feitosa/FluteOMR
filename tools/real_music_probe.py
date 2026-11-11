@@ -59,7 +59,9 @@ def probe_pdf(
             "predicted_measures": sum(len(p.measures) for p in result.score.parts),
             "predicted_events": len(notes),
             "resolved_pitch_events": sum(note.pitch is not None for note in notes),
-            "resolved_duration_events": sum(note.duration is not None for note in notes),
+            "resolved_duration_events": sum(
+                note.duration is not None for note in notes
+            ),
             "issues": list(problems),
             "issue_count": len(problems),
             "image_load_seconds": round(loaded_seconds, 4),

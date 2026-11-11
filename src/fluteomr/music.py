@@ -169,7 +169,11 @@ class Measure:
                 sorted(positions)
             ):
                 problems.append(f"beam_levels_invalid:note={index}")
-            if note.beam is not None and note.beam_levels and positions.get(1) != note.beam:
+            if (
+                note.beam is not None
+                and note.beam_levels
+                and positions.get(1) != note.beam
+            ):
                 problems.append(f"beam_primary_conflict:note={index}")
             if levels and kind not in ("eighth", "sixteenth"):
                 problems.append(f"beam_requires_eighth:note={index}")

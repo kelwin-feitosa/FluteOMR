@@ -37,10 +37,12 @@ def _second_beam(
 
 
 def _notes3():
+    # Mantém os feixes abaixo da pauta: evita que uma linha de pauta
+    # intercepte a segunda banda e crie falsas cabeças no teste isolado.
     return (
-        (145, 9, "eighth", "down"),
-        (215, 8, "eighth", "down"),
-        (285, 7, "eighth", "down"),
+        (145, 5, "eighth", "down"),
+        (215, 4, "eighth", "down"),
+        (285, 3, "eighth", "down"),
     )
 
 

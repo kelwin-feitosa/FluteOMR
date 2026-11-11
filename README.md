@@ -52,6 +52,46 @@ Para aplicar formatação: `python -m ruff format .`. Os testes `tests/test_*.py
 verificam instalação, detecção e métricas contra dados sintéticos conhecidos.
 Ainda não existe meta de cobertura nem avaliação independente de símbolos reais.
 
+## Contratos e integridade da avaliação
+
+A API de detecção geométrica mantém os valores padrão de reconhecimento. Para
+experimentos controlados, `StaffDetectionConfig` expõe frações de projeção,
+largura de pauta e ajuste de contraste, sem modificar o resultado legado quando
+seus defaults são usados:
+
+```python
+from dataclasses import asdict
+
+from PIL import Image
+from fluteomr import StaffDetectionConfig, detect_staffs
+
+config = StaffDetectionConfig()
+with Image.open("partitura.png") as image:
+    result = detect_staffs(image, config=config)
+print(result.status, result.staff_count)
+print(asdict(config))  # registrar com os resultados do experimento
+```
+
+O laboratório confere a separação por obra (`work_id`), não apenas por
+imagem/`id`. Para conferir os manifestos versionados antes da avaliação:
+
+```bash
+python -m tools.benchmark_integrity tests/data/music_lab/*.json tests/data/music_lab/sprint1d/*-manifest.json
+python -m tools.benchmark_integrity --require-work-id tests/data/music_lab/sprint1d/development-manifest.json tests/data/music_lab/sprint1d/validation-manifest.json
+```
+
+O modo estrito exige `work_id` explícito. No modo legado, sua ausência
+assume `id`, o que **não consegue detectar versões da mesma obra com IDs
+diferentes**. Um resultado de integridade aprovado não comprova que as
+anotações são independentes, nem valida a precisão musical: isso requer
+partituras reais e referências revisadas por pessoas. Consulte
+[`docs/audit-2026-11-11.md`](docs/audit-2026-11-11.md) para os achados
+priorizados e o alcance das alterações.
+Consulte também [`docs/api-contracts.md`](docs/api-contracts.md) para fronteiras de módulos,
+contratos experimentais e política de compatibilidade. O resumo de avaliação
+separa resultados `validated` e `source_authored` em `reference_quality`;
+uma referência marcada `validated` exige pacote de revisão verificável.
+
 ## Demonstração local e API
 
 Com o ambiente ativado, execute da raiz:

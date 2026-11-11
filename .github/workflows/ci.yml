@@ -25,6 +25,10 @@ jobs:
           python -m pip install --no-build-isolation --no-deps -e .
       - name: Testar instalação
         run: python -m pytest -q
+      - name: Validar integridade dos benchmarks
+        run: |
+          python -m tools.benchmark_integrity tests/data/music_lab/*.json tests/data/music_lab/sprint1d/*-manifest.json
+          python -m tools.benchmark_integrity --require-work-id tests/data/music_lab/sprint1d/development-manifest.json tests/data/music_lab/sprint1d/validation-manifest.json
       - name: Verificar lint
         run: python -m ruff check .
       - name: Verificar formatação

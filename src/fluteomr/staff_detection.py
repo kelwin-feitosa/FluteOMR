@@ -5,6 +5,7 @@ x para a direita, y para baixo. Extremos e bounding boxes são inclusivos.
 """
 
 from dataclasses import asdict, dataclass, replace
+from math import isfinite
 from pathlib import Path
 from statistics import median
 from typing import Literal
@@ -12,6 +13,41 @@ from typing import Literal
 from PIL import Image
 
 from fluteomr.image_io import load_image, normalize_image
+
+
+@dataclass(frozen=True)
+class StaffDetectionConfig:
+    """Parâmetros iniciais de pauta; defaults preservam o comportamento legado.
+
+    A configuração usada em um experimento deve ser registrada com as métricas.
+    Valores relativos estão na faixa [0, 1], salvo as frações de span (> 0).
+    """
+
+    primary_span_fraction: float = 0.25
+    retry_span_fraction: float = 0.10
+    projection_peak_fraction: float = 0.60
+    contrast_adjust_fraction: float = 0.30
+
+    def __post_init__(self) -> None:
+        for name in (
+            "primary_span_fraction",
+            "retry_span_fraction",
+            "projection_peak_fraction",
+            "contrast_adjust_fraction",
+        ):
+            value = getattr(self, name)
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not isfinite(value)
+                or not 0 <= value <= 1
+            ):
+                raise ValueError(f"{name} deve estar entre 0 e 1")
+        if self.primary_span_fraction == 0 or self.retry_span_fraction == 0:
+            raise ValueError("frações mínimas da pauta devem ser positivas")
+
+
+DEFAULT_STAFF_CONFIG = StaffDetectionConfig()
 
 
 @dataclass(frozen=True)
@@ -99,16 +135,26 @@ def _horizontal_spans(row: bytes) -> list[tuple[int, int]]:
 
 
 def _line_candidates(
-    binary: bytes, width: int, height: int, *, narrow_page: bool = False
+    binary: bytes,
+    width: int,
+    height: int,
+    *,
+    narrow_page: bool = False,
+    config: StaffDetectionConfig = DEFAULT_STAFF_CONFIG,
 ) -> tuple[StaffLine, ...]:
     projection = [binary[y * width : (y + 1) * width].count(1) for y in range(height)]
     # Em página inteira uma pauta curta pode ocupar menos de 25% da largura.
     # A segunda passagem usa uma fração menor, mantendo agrupamento/validação.
-    fraction = 0.10 if narrow_page else 0.25
+    fraction = (
+        config.retry_span_fraction if narrow_page else config.primary_span_fraction
+    )
     minimum = (
         width * fraction
         if narrow_page
-        else max(width * fraction, max(projection, default=0) * 0.6)
+        else max(
+            width * fraction,
+            max(projection, default=0) * config.projection_peak_fraction,
+        )
     )
     bands: list[list[tuple[int, int, tuple[int, int]]]] = []
     for y, count in enumerate(projection):
@@ -241,12 +287,16 @@ def _refine_staff_extents(
     )
 
 
-def detect_staffs(image: Image.Image) -> DetectionResult:
+def detect_staffs(
+    image: Image.Image, *, config: StaffDetectionConfig = DEFAULT_STAFF_CONFIG
+) -> DetectionResult:
     """Detecta geometria horizontal; status não confirma identidade musical.
 
     Aceita imagem Pillow, sem mutá-la. Grupos concorrentes compartilham linhas e
     são omitidos de staffs, mantendo candidatos e status ambiguous para revisão.
     """
+    if not isinstance(config, StaffDetectionConfig):
+        raise TypeError("config deve ser StaffDetectionConfig")
     gray = normalize_image(image).convert("L")
     histogram = gray.histogram()
     threshold = _otsu_threshold(histogram)
@@ -266,16 +316,19 @@ def detect_staffs(image: Image.Image) -> DetectionResult:
     # Otsu pode omitir bordas claras de linhas suavizadas. O ajuste relativo ao
     # tom mais frequente recupera essas bordas sem fixar intensidade em pixels.
     analysis_threshold = max(
-        threshold, round(threshold + 0.30 * (background - threshold))
+        threshold,
+        round(threshold + config.contrast_adjust_fraction * (background - threshold)),
     )
     pixels = gray.tobytes()
     binary = pixels.translate(bytes(int(i <= analysis_threshold) for i in range(256)))
-    lines = _line_candidates(binary, gray.width, gray.height)
+    lines = _line_candidates(binary, gray.width, gray.height, config=config)
     groups = _group_candidates(lines, binary, gray.width, gray.height)
     narrow_retried = False
     if not groups:
         narrow_retried = True
-        lines = _line_candidates(binary, gray.width, gray.height, narrow_page=True)
+        lines = _line_candidates(
+            binary, gray.width, gray.height, narrow_page=True, config=config
+        )
         groups = _group_candidates(lines, binary, gray.width, gray.height)
     retried = False
     if not groups and background > threshold:
@@ -288,11 +341,13 @@ def detect_staffs(image: Image.Image) -> DetectionResult:
             binary = pixels.translate(
                 bytes(int(i <= analysis_threshold) for i in range(256))
             )
-            lines = _line_candidates(binary, gray.width, gray.height)
+            lines = _line_candidates(binary, gray.width, gray.height, config=config)
             groups = _group_candidates(lines, binary, gray.width, gray.height)
     if not groups:
         narrow_retried = True
-        lines = _line_candidates(binary, gray.width, gray.height, narrow_page=True)
+        lines = _line_candidates(
+            binary, gray.width, gray.height, narrow_page=True, config=config
+        )
         groups = _group_candidates(lines, binary, gray.width, gray.height)
     conflicting: set[int] = set()
     for (start, _), (other, _) in zip(groups, groups[1:], strict=False):
@@ -325,6 +380,8 @@ def detect_staffs(image: Image.Image) -> DetectionResult:
     )
 
 
-def detect_staffs_file(path: str | Path) -> DetectionResult:
+def detect_staffs_file(
+    path: str | Path, *, config: StaffDetectionConfig = DEFAULT_STAFF_CONFIG
+) -> DetectionResult:
     """API de arquivo PNG/JPEG; dimensões referem-se à orientação normalizada."""
-    return detect_staffs(load_image(path))
+    return detect_staffs(load_image(path), config=config)

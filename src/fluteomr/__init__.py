@@ -16,7 +16,12 @@ from fluteomr.score import (
     propose_parts_by_order,
     unlink_staff,
 )
-from fluteomr.staff_detection import DetectionResult, detect_staffs, detect_staffs_file
+from fluteomr.staff_detection import (
+    DetectionResult,
+    StaffDetectionConfig,
+    detect_staffs,
+    detect_staffs_file,
+)
 from fluteomr.systems import MusicSystem, SystemGroupingResult, group_staffs
 
 __all__ = [
@@ -26,6 +31,7 @@ __all__ = [
     "MusicSystem",
     "Part",
     "ScorePage",
+    "StaffDetectionConfig",
     "StaffRef",
     "SystemGroupingResult",
     "TrebleClef",

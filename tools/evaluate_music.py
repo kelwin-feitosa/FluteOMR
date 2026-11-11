@@ -10,6 +10,7 @@ from fluteomr.image_io import load_image
 from fluteomr.music_evaluation import evaluate_music, parse_reference
 from fluteomr.musicxml import to_musicxml
 from fluteomr.transcription import transcribe_measures, transcribe_one_measure
+from tools.benchmark_integrity import validate_examples
 
 
 def evaluate_manifest(
@@ -24,6 +25,7 @@ def evaluate_manifest(
         manifest.get("examples"), list
     ):
         raise ValueError("manifesto inválido ou versão não suportada")
+    validate_examples(manifest["examples"], source=str(manifest_path))
     rows = []
     for example in manifest["examples"]:
         if example["split"] not in ("development", "validation", "test"):
@@ -37,6 +39,10 @@ def evaluate_manifest(
             "missing",
         ):
             raise ValueError("estado da referência inválido")
+        if example["reference_status"] == "validated" and not example.get("review"):
+            raise ValueError(
+                "referência validada exige pacote de revisão humana verificável"
+            )
         configured = example["configured"]
         if (
             configured.get("clef", "treble") != "treble"
@@ -171,6 +177,37 @@ def summarize_results(rows: list[dict]) -> dict:
         else "not_evaluated"
     )
     summary["match_fraction_kind"] = "confirmed_matches_over_all_known_reference_events"
+    # Referências de origem gerada não são evidência de validação humana.
+    # Preservamos a métrica legada, mas mostramos denominadores independentes.
+    cohorts = {}
+    for status in ("validated", "source_authored", "draft", "missing"):
+        members = [row for row in rows if row.get("reference_status") == status]
+        reference_events = 0
+        matches = 0
+        for row in members:
+            evaluation = row.get("evaluation")
+            if isinstance(evaluation, dict):
+                reference_events += evaluation["reference_events"]
+                matches += evaluation["matches"]
+            else:
+                reference_events += row.get("reference_events", 0)
+        cohorts[status] = {
+            "images": len(members),
+            "musical_works": len({row.get("work_id", row["id"]) for row in members}),
+            "reference_events": reference_events,
+            "complete_matches": matches,
+            "processing_failures": sum("processing_error" in row for row in members),
+            "match_fraction": (
+                {"matched": matches, "expected": reference_events}
+                if reference_events and status in ("validated", "source_authored")
+                else "not_evaluated"
+            ),
+        }
+    summary["reference_quality"] = cohorts
+    summary["match_fraction_caveat"] = (
+        "A fração agregada inclui referências source_authored e validated. "
+        "Use reference_quality.validated para dados de revisão humana."
+    )
     return summary
 
 

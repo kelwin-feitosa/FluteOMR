@@ -53,6 +53,7 @@ def compare_probe_reports(baseline: dict, adaptive: dict) -> dict:
             raise ValueError(f"{label}: contagem por duração inválida")
         if sum(kinds.values()) != resolved:
             raise ValueError(f"{label}: soma de tipos rítmicos incompatível")
+        _count(report, "rejected_invalid_beam_group_count")
         _count(report, "predicted_double_beam_sixteenths")
         _count(report, "confirmed_mixed_beam_note_count")
         if not isinstance(report.get("unresolved_duration_diagnostic_counts"), dict):
@@ -91,6 +92,7 @@ def compare_probe_reports(baseline: dict, adaptive: dict) -> dict:
         "resolved_duration_events",
         "unresolved_duration_events",
         "predicted_double_beam_sixteenths",
+        "rejected_invalid_beam_group_count",
         "confirmed_mixed_beam_note_count",
     )
     changes = {

@@ -99,6 +99,9 @@ def probe_pdf(
                     ).items()
                 )
             ),
+            "rejected_invalid_beam_group_count": sum(
+                "invalid_beam_group_rejected" in note.diagnostics for note in notes
+            ),
             "predicted_double_beam_sixteenths": sum(
                 note.duration is not None
                 and note.duration.kind == "sixteenth"

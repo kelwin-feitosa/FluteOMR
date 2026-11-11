@@ -27,6 +27,7 @@ def _probe(adaptive: bool) -> dict:
         },
         "unresolved_duration_events": 4 - resolved,
         "predicted_double_beam_sixteenths": resolved - 2,
+        "rejected_invalid_beam_group_count": 0,
         "confirmed_mixed_beam_note_count": resolved - 2,
         "unresolved_duration_diagnostic_counts": {
             "secondary_stripe_ambiguous": 4 - resolved

@@ -60,15 +60,24 @@ def _four_beamed():
     )
 
 
-def test_one_secondary_pair_does_not_promote_four_heads_to_sixteenths():
+def test_one_secondary_pair_only_promotes_its_connected_notes():
     notes = _four_beamed()
     image = _page(notes, beam_groups=((0, 1, 2, 3),))
     _draw_secondary(image, notes[0][:2], notes[1][:2])
     score = transcribe_one_measure(image, measure_left=110, measure_right=410, beats=1)
     events = score.parts[0].measures[0].notes
     assert len(events) == 4
-    assert all(note.duration is None for note in events)
-    assert all("double_beam" in note.diagnostics for note in events)
+    assert [note.duration.kind for note in events] == [
+        "sixteenth", "sixteenth", "eighth", "eighth"
+    ]
+    assert [note.beam_levels for note in events] == [
+        ((1, "begin"), (2, "begin")),
+        ((1, "continue"), (2, "end")),
+        ((1, "continue"),),
+        ((1, "end"),),
+    ]
+    # 1,5 semínimas em compasso 1/4: recusar exportação incompatível.
+    assert any("measure_duration_mismatch" in issue for issue in score.issues())
     with pytest.raises(ValueError, match="incompleta"):
         to_musicxml(score)
 

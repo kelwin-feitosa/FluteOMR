@@ -40,9 +40,7 @@ def test_mixed_beam_fixture_with_independent_engraving(pair, kinds, secondary):
     assert len(events) == 3
     assert tuple(note.duration.kind for note in events) == kinds
     assert [note.beam for note in events] == ["begin", "continue", "end"]
-    assert [
-        dict(note.beam_levels).get(2) for note in events
-    ] == list(secondary)
+    assert [dict(note.beam_levels).get(2) for note in events] == list(secondary)
     assert all(
         "double_beam" in note.diagnostics
         if item == "sixteenth"
@@ -55,11 +53,7 @@ def test_mixed_beam_fixture_with_independent_engraving(pair, kinds, secondary):
         "1" if item == "sixteenth" else "2" for item in kinds
     ]
     assert [
-        (
-            beam.text
-            if (beam := note.find("beam[@number='2']")) is not None
-            else None
-        )
+        (beam.text if (beam := note.find("beam[@number='2']")) is not None else None)
         for note in exported
     ] == list(secondary)
 

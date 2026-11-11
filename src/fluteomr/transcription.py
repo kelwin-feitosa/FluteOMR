@@ -11,7 +11,9 @@ from fluteomr.music import (
     Measure,
     MusicPart,
     MusicScore,
+    Note,
     TimeSignature,
+    note_beam_levels,
 )
 from fluteomr.notes import (
     NoteheadObservation,
@@ -79,6 +81,52 @@ def _interpret_notes(
                 )
             )
     return tuple(notes), stems, marks
+
+
+def _reject_incomplete_beam_runs(notes: tuple[Note, ...]) -> tuple[Note, ...]:
+    """Não publicar durações quando as relações de feixe quebram no compasso.
+
+    A visão pode ligar hastes que depois ficam em compassos diferentes ou
+    perder cabeças intermediárias. Validamos cada trecho antes de atribuir
+    duração definitiva; o motor legado permanece inalterado.
+    """
+    result = list(notes)
+    index = 0
+    while index < len(result):
+        if not note_beam_levels(result[index]):
+            index += 1
+            continue
+        end = index + 1
+        while end < len(result) and note_beam_levels(result[end]):
+            end += 1
+        section = tuple(result[index:end])
+        probe = Measure(
+            1,
+            section,
+            TimeSignature(4, 4, "configuration"),
+            "configuration",
+        )
+        if any(
+            issue.startswith(
+                ("beam_", "secondary_beam_", "primary_beam_", "mixed_beam_")
+            )
+            for issue in probe.issues()
+        ):
+            for position in range(index, end):
+                original = result[position]
+                result[position] = replace(
+                    original,
+                    duration=None,
+                    duration_origin="unknown",
+                    beam=None,
+                    beam_levels=(),
+                    diagnostics=(
+                        *original.diagnostics,
+                        "invalid_beam_group_rejected",
+                    ),
+                )
+        index = end
+    return tuple(result)
 
 
 def transcribe_one_measure(
@@ -222,6 +270,8 @@ def transcribe_staff_measures(
             for note in notes
             if left < (note.source_region.left + note.source_region.right) / 2 < right
         )
+        if adaptive_secondary:
+            included = _reject_incomplete_beam_runs(included)
         boundary_ids = tuple(
             bar.id for bar in accepted if bar.x == left or bar.x == right
         )

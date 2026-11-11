@@ -20,6 +20,8 @@ A CLI `tools.evaluate_corpus` recebe múltiplos manifestos e chama
 `validate_manifests` **antes de abrir imagens ou referências**.
 
 - `work_id` explícito é obrigatório por padrão (sem fallback silencioso);
+- quando disponível, `image_sha256` deve ser um digest hexadecimal de 64 caracteres: a verificação detecta imagens byte-idênticas atribuídas a splits incompatíveis ou obras diferentes, mesmo com IDs divergentes; novos pacotes `music_review` incluem e verificam esse campo automaticamente;
+
 - `--allow-legacy-work-id` só para conjuntos históricos, com aviso;
 - sem `--split`, avalia **somente development**;
 - `validation` e `test` exigem seleção explícita;

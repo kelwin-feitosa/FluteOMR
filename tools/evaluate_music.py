@@ -10,6 +10,7 @@ from fluteomr.image_io import load_image
 from fluteomr.music_evaluation import evaluate_music, parse_reference
 from fluteomr.musicxml import to_musicxml
 from fluteomr.transcription import transcribe_measures, transcribe_one_measure
+from tools.benchmark_integrity import validate_examples
 
 
 def evaluate_manifest(
@@ -24,6 +25,7 @@ def evaluate_manifest(
         manifest.get("examples"), list
     ):
         raise ValueError("manifesto inválido ou versão não suportada")
+    validate_examples(manifest["examples"], source=str(manifest_path))
     rows = []
     for example in manifest["examples"]:
         if example["split"] not in ("development", "validation", "test"):

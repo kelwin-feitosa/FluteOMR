@@ -4,10 +4,10 @@ PDFium é usado somente para rasterizar; o reconhecimento musical continua no
 FluteOMR. A resolução e os limites são verificados antes de alocar o bitmap.
 """
 
+from collections.abc import Iterator
 from contextlib import contextmanager
 from math import ceil, isfinite
 from pathlib import Path
-from typing import Iterator
 
 from PIL import Image
 

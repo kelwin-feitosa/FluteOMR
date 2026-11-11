@@ -80,6 +80,20 @@ def probe_pdf(
                 and "double_beam" in note.diagnostics
                 for note in notes
             ),
+            "confirmed_mixed_beam_note_count": sum(
+                "verified_partial_secondary_group" in note.diagnostics
+                for note in notes
+            ),
+            "confirmed_mixed_beam_duration_counts": dict(
+                sorted(
+                    Counter(
+                        note.duration.kind
+                        for note in notes
+                        if note.duration is not None
+                        and "verified_partial_secondary_group" in note.diagnostics
+                    ).items()
+                )
+            ),
             "unresolved_duration_events": len(unknown_durations),
             "unresolved_duration_diagnostic_counts": dict(
                 sorted(evidence_counts.items())

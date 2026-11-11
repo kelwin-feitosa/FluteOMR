@@ -10,7 +10,10 @@ from fluteomr.transcription import transcribe_one_measure
 from tests.test_eighths import _page
 
 
-def _second_beam(image, notes, first, second, *, spacing=16, fraction=0.62, width=4):
+def _second_beam(
+    image, notes, first, second, *, spacing=16, fraction=0.62, width=4,
+    length=1.0,
+):
     rx = round(0.65 * spacing)
     def tip(index):
         x, degree, _, direction = notes[index]
@@ -23,7 +26,11 @@ def _second_beam(image, notes, first, second, *, spacing=16, fraction=0.62, widt
     x2, y2 = tip(second)
     offset = -round(fraction * spacing)
     ImageDraw.Draw(image).line(
-        (x1, y1 + offset, x2, y2 + offset),
+        (
+            x1, y1 + offset,
+            round(x1 + length * (x2 - x1)),
+            round(y1 + length * (y2 - y1)) + offset,
+        ),
         fill="black",
         width=width,
     )
@@ -90,8 +97,7 @@ def test_adaptive_secondary_does_not_accept_partial_second_beam():
     notes = _notes3()[:2]
     image = _page(notes, beam_groups=((0, 1),))
     # Um feixe incompleto não forma continuidade entre as duas hastes.
-    _second_beam(image, notes, 0, 1, fraction=0.65)
-    ImageDraw.Draw(image).rectangle((173, 138, 197, 215), fill="white")
+    _second_beam(image, notes, 0, 1, fraction=0.65, length=0.52)
     det = detect_staffs(image)
     staff = det.staffs[0]
     heads = detect_noteheads(image, staff, det.threshold, 110, 410)

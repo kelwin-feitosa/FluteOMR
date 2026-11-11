@@ -12,7 +12,7 @@ import re
 import tempfile
 from pathlib import Path
 from urllib.parse import urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 MAX_PDF_BYTES = 20 * 1024 * 1024
 TRUSTED_HOSTS = frozenset({"www.mutopiaproject.org", "mutopiaproject.org"})
@@ -75,11 +75,21 @@ def load_catalog(path: Path) -> dict[str, dict]:
     return entries
 
 
+class _RestrictedRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        _approved_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _open_approved(request: Request, *, timeout: int):
+    return build_opener(_RestrictedRedirect()).open(request, timeout=timeout)
+
+
 def download_score(
     entry: dict,
     destination: Path,
     *,
-    opener=urlopen,
+    opener=None,
 ) -> dict:
     """Baixa PDF sem sobrescrever saída e verifica hash quando declarado.
 
@@ -96,6 +106,8 @@ def download_score(
     if pdf_path.exists() or metadata_path.exists():
         raise FileExistsError("saída existente: não sobrescrever downloads anteriores")
 
+    if opener is None:
+        opener = _open_approved
     request = Request(
         url,
         headers={

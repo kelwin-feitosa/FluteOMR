@@ -1,0 +1,45 @@
+name: MuseScore opcional — referências digitais controladas
+
+on:
+  pull_request:
+    paths:
+      - "tools/musescore_fixture.py"
+      - "tests/test_musescore_fixture.py"
+      - "tests/data/music_lab/dev_down_flags.musicxml"
+      - ".github/workflows/musescore-fixtures.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-musescore-cli:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Instalar versão MuseScore empacotada pelo Ubuntu
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends musescore3
+          command -v mscore || command -v musescore3
+      - name: Criar gravura de um MusicXML próprio e seus mapas posicionais
+        run: |
+          python -m tools.musescore_fixture \
+            tests/data/music_lab/dev_down_flags.musicxml \
+            --out-dir outputs/musescore-smoke \
+            --dpi 200 \
+            --format pdf --format png --format mpos --format spos
+      - name: Registrar hashes e saídas sem classificar como ground truth independente
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: musescore-source-authored-fixture
+          path: outputs/musescore-smoke/
+          retention-days: 7
+          if-no-files-found: warn

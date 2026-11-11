@@ -1,6 +1,7 @@
-"""Evidência geométrica leve de bandeirolas e feixes de colcheias.
+"""Evidência geométrica de bandeirolas e feixes de colcheias/semicolcheias.
 
-Não infere ritmo por distância entre cabeças. Marcas duplas são inconclusivas.
+Apenas grupos completos de dois traços separados são reconhecidos como
+semicolcheias; feixes secundários parciais permanecem inconclusivos.
 """
 
 from dataclasses import dataclass
@@ -154,7 +155,7 @@ def detect_rhythm_evidence(
     staff_index: int = 0,
     barlines: tuple[BarlineCandidate, ...] = (),
 ) -> tuple[RhythmEvidence, ...]:
-    """Liga marcas às hastes confirmadas, preservando marcas duplas inconclusivas."""
+    """Liga marcas às hastes; exige segundo feixe contínuo em todo o grupo."""
     if not stems:
         return ()
     pixels = normalize_image(image).convert("L").load()
@@ -169,7 +170,9 @@ def detect_rhythm_evidence(
         stem.id: -1 if stem.region.left > head.center_x else 1 for stem, head in linked
     }
     connections: dict[str, set[str]] = {stem.id: set() for stem, _ in linked}
-    double: set[str] = set()
+    secondary_connections: dict[str, set[str]] = {
+        stem.id: set() for stem, _ in linked
+    }
     radius = max(2, round(0.32 * staff.spacing))
     for (first, first_head), (second, second_head) in zip(
         linked, linked[1:], strict=False
@@ -204,10 +207,26 @@ def detect_rhythm_evidence(
             offset,
         )
         if secondary_support >= 0.78 and secondary_gap <= 1.2 * staff.spacing:
-            double.update((first.id, second.id))
+            # Um feixe grosso ou uma faixa mesclada não são dois feixes.
+            # Exigir um vale claro entre os dois traços amostrados, longe
+            # das hastes, evita promover paralelas que se tocam.
+            midpoint_support, _ = _stripe_support(
+                ink,
+                image.width,
+                image.height,
+                a,
+                b,
+                max(1, round(0.08 * staff.spacing)),
+                -direction[first.id] * round(0.5 * staff.spacing),
+            )
+            if midpoint_support <= 0.35:
+                secondary_connections[first.id].add(second.id)
+                secondary_connections[second.id].add(first.id)
         connections[first.id].add(second.id)
         connections[second.id].add(first.id)
     groups = {}
+    accepted_double: set[str] = set()
+    uncertain_double: set[str] = set()
     for stem, _ in linked:
         if stem.id in groups or not connections[stem.id]:
             continue
@@ -220,8 +239,19 @@ def detect_rhythm_evidence(
                 frontier.append(neighbor)
         group = frozenset(members)
         groups.update({member: group for member in group})
-        if group & double:
-            double.update(group)
+        secondary_present = any(secondary_connections[member] for member in group)
+        if secondary_present:
+            # Um único par com dois feixes NÃO é evidência suficiente para
+            # dar duração de semicolcheia a todos os membros do grupo.
+            # Os feixes parciais (mistura de 8th/16th) exigem modelagem própria.
+            if all(
+                secondary_connections[member] == connections[member]
+                and 1 <= len(connections[member]) <= 2
+                for member in group
+            ):
+                accepted_double.update(group)
+            else:
+                uncertain_double.update(group)
     evidence = []
     for index, (stem, head) in enumerate(linked):
         tip = tips[stem.id]
@@ -256,33 +286,45 @@ def detect_rhythm_evidence(
                 min(image.width - 1, max(tip[0], end_x)),
                 min(image.height - 1, max(tip[1], end_y)),
             )
-        if stem.id in double:
-            evidence.append(
-                RhythmEvidence(
-                    stem.head_id,
-                    "double_beam",
-                    region,
-                    "inconclusive",
-                    reason="parallel_beam_unsupported",
-                )
-            )
-        elif connections[stem.id]:
+        if connections[stem.id]:
             left = index > 0 and linked[index - 1][0].id in connections[stem.id]
             right = (
                 index + 1 < len(linked)
                 and linked[index + 1][0].id in connections[stem.id]
             )
             position = "continue" if left and right else "end" if left else "begin"
-            evidence.append(
-                RhythmEvidence(
-                    stem.head_id,
-                    "beam",
-                    region,
-                    "accepted",
-                    position,
-                    "continuous_single_beam",
+            if stem.id in accepted_double:
+                evidence.append(
+                    RhythmEvidence(
+                        stem.head_id,
+                        "double_beam",
+                        region,
+                        "accepted",
+                        position,
+                        "two_separated_continuous_beams",
+                    )
                 )
-            )
+            elif stem.id in uncertain_double:
+                evidence.append(
+                    RhythmEvidence(
+                        stem.head_id,
+                        "double_beam",
+                        region,
+                        "inconclusive",
+                        reason="partial_or_ambiguous_double_beam",
+                    )
+                )
+            else:
+                evidence.append(
+                    RhythmEvidence(
+                        stem.head_id,
+                        "beam",
+                        region,
+                        "accepted",
+                        position,
+                        "continuous_single_beam",
+                    )
+                )
         elif flag:
             evidence.append(
                 RhythmEvidence(

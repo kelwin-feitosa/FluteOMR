@@ -6,12 +6,7 @@ import json
 
 import pytest
 
-from tools.fetch_public_scores import (
-    CorpusSourceError,
-    _RestrictedRedirect,
-    download_score,
-    load_catalog,
-)
+from tools import fetch_public_scores
 
 
 PDF_URL = (
@@ -54,7 +49,7 @@ def test_acquires_valid_pdf_and_records_actual_hash_without_claiming_pin(tmp_pat
         requests.append((request.full_url, timeout))
         return FakeResponse(pdf)
 
-    record = download_score(_item(), tmp_path, opener=opener)
+    record = fetch_public_scores.download_score(_item(), tmp_path, opener=opener)
     base = tmp_path / "mutopia-bwv1013"
     assert (base / "source.pdf").read_bytes() == pdf
     assert json.loads((base / "acquisition.json").read_text()) == record
@@ -65,14 +60,14 @@ def test_acquires_valid_pdf_and_records_actual_hash_without_claiming_pin(tmp_pat
     assert not list(base.glob(".incoming-*"))
     before = (base / "source.pdf").read_bytes()
     with pytest.raises(FileExistsError):
-        download_score(_item(), tmp_path, opener=opener)
+        fetch_public_scores.download_score(_item(), tmp_path, opener=opener)
     assert (base / "source.pdf").read_bytes() == before
 
 
 def test_pinned_sha256_is_verified_before_writing(tmp_path):
     pdf = _pdf()
     item = _item(hashlib.sha256(pdf).hexdigest())
-    record = download_score(item, tmp_path, opener=lambda *_a, **_k: FakeResponse(pdf))
+    record = fetch_public_scores.download_score(item, tmp_path, opener=lambda *_a, **_k: FakeResponse(pdf))
     assert record["checksum_verified_against_pin"] is True
 
 
@@ -86,8 +81,8 @@ def test_pinned_sha256_is_verified_before_writing(tmp_path):
 def test_invalid_remote_payload_is_rejected_without_partial_files(
     tmp_path, payload, message
 ):
-    with pytest.raises(CorpusSourceError, match=message):
-        download_score(
+    with pytest.raises(fetch_public_scores.CorpusSourceError, match=message):
+        fetch_public_scores.download_score(
             _item(), tmp_path, opener=lambda *_a, **_k: FakeResponse(payload)
         )
     folder = tmp_path / "mutopia-bwv1013"
@@ -97,8 +92,8 @@ def test_invalid_remote_payload_is_rejected_without_partial_files(
 
 
 def test_wrong_sha256_is_rejected_without_partial_files(tmp_path):
-    with pytest.raises(CorpusSourceError, match="hash"):
-        download_score(
+    with pytest.raises(fetch_public_scores.CorpusSourceError, match="hash"):
+        fetch_public_scores.download_score(
             _item("a" * 64),
             tmp_path,
             opener=lambda *_a, **_k: FakeResponse(_pdf()),
@@ -107,8 +102,8 @@ def test_wrong_sha256_is_rejected_without_partial_files(tmp_path):
 
 
 def test_redirect_to_untrusted_host_is_rejected(tmp_path):
-    with pytest.raises(CorpusSourceError, match="aprovados"):
-        download_score(
+    with pytest.raises(fetch_public_scores.CorpusSourceError, match="aprovados"):
+        fetch_public_scores.download_score(
             _item(),
             tmp_path,
             opener=lambda *_a, **_k: FakeResponse(
@@ -124,8 +119,8 @@ def test_too_large_content_length_is_rejected_before_streaming(tmp_path):
         response.headers["Content-Length"] = str(21 * 1024 * 1024)
         return response
 
-    with pytest.raises(CorpusSourceError, match="Content-Length"):
-        download_score(_item(), tmp_path, opener=opener)
+    with pytest.raises(fetch_public_scores.CorpusSourceError, match="Content-Length"):
+        fetch_public_scores.download_score(_item(), tmp_path, opener=opener)
 
 
 def test_catalog_rejects_unsafe_source_even_without_network(tmp_path):
@@ -133,27 +128,27 @@ def test_catalog_rejects_unsafe_source_even_without_network(tmp_path):
     bad["pdf_url"] = "http://127.0.0.1/payload.pdf"
     path = tmp_path / "sources.json"
     path.write_text(json.dumps({"format_version": 1, "sources": [bad]}))
-    with pytest.raises(CorpusSourceError, match="hosts aprovados"):
-        load_catalog(path)
+    with pytest.raises(fetch_public_scores.CorpusSourceError, match="hosts aprovados"):
+        fetch_public_scores.load_catalog(path)
 
 
 def test_catalog_valid_and_rejects_duplicate_ids(tmp_path):
     path = tmp_path / "sources.json"
     data = {"format_version": 1, "sources": [_item()]}
     path.write_text(json.dumps(data))
-    assert load_catalog(path)["mutopia-bwv1013"]["pdf_sha256"] is None
+    assert fetch_public_scores.load_catalog(path)["mutopia-bwv1013"]["pdf_sha256"] is None
     data["sources"].append(_item())
     path.write_text(json.dumps(data))
-    with pytest.raises(CorpusSourceError, match="id duplicado"):
-        load_catalog(path)
+    with pytest.raises(fetch_public_scores.CorpusSourceError, match="id duplicado"):
+        fetch_public_scores.load_catalog(path)
 
 
 def test_redirect_handler_blocks_cross_domain_before_following():
     from urllib.request import Request
 
-    handler = _RestrictedRedirect()
+    handler = fetch_public_scores._RestrictedRedirect()
     request = Request(PDF_URL)
-    with pytest.raises(CorpusSourceError, match="hosts aprovados"):
+    with pytest.raises(fetch_public_scores.CorpusSourceError, match="hosts aprovados"):
         handler.redirect_request(
             request, None, 302, "Found", {}, "https://127.0.0.1/private.pdf"
         )

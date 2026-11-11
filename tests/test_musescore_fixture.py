@@ -1,7 +1,6 @@
 """MuseScore adapter tests use a fake executable; no external editor required."""
 
 import json
-import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 

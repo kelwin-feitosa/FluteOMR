@@ -64,5 +64,21 @@ MusicXML derivado do LilyPond ainda contradiz a fonte publicada
 (ADR 0025). Os recortes da ADR 0028 permitem examinar falsos
 positivos antes de decidir sobre habilitar a opção por padrão.
 
+Para comparação controlada em 200 DPI, usar o perfil padrão
+(`music-probe.json`) e o adaptativo (`adaptive-probe-200.json`).
+O workflow agora também gera `adaptive-ab-200.json`:
+
+```bash
+python -m tools.compare_adaptive_probes \
+  outputs/real_scores/mutopia-bwv1013/music-probe.json \
+  outputs/real_scores/mutopia-bwv1013/adaptive-probe-200.json \
+  --report outputs/real_scores/mutopia-bwv1013/adaptive-ab-200.json
+```
+
+O comparador rejeita fonte, página, DPI, modo ou contagem incompatíveis,
+e reporta diferenças em durações resolvidas, feixes e razões de incerteza.
+Nenhuma diferença de cobertura equivale a acurácia medida.
+Ele não usa MusicXML derivado como rótulo de verdade.
+
 Não utilizar `adaptive_secondary` para geração automática de
 MusicXML final como se tivesse sido validada por humano.

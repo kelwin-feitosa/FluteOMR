@@ -98,7 +98,7 @@ def test_empty_directory_does_not_produce_fake_ground_truth(tmp_path):
 
 
 def _prefix_file(source, tmp_path):
-    literal = r'\\version \\"2.18.2\\"'
+    literal = source.read_text()
     manifest = {
         "format_version": 1,
         "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),

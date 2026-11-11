@@ -62,10 +62,13 @@ seus defaults são usados:
 ```python
 from dataclasses import asdict
 
+from PIL import Image
 from fluteomr import StaffDetectionConfig, detect_staffs
 
 config = StaffDetectionConfig()
-result = detect_staffs(image, config=config)  # image: PIL.Image
+with Image.open("partitura.png") as image:
+    result = detect_staffs(image, config=config)
+print(result.status, result.staff_count)
 print(asdict(config))  # registrar com os resultados do experimento
 ```
 

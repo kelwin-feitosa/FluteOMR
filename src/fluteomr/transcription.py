@@ -61,7 +61,9 @@ def _interpret_notes(image, staff, threshold, heads, barlines=()):
             notes.append(
                 replace(
                     note,
-                    duration=Duration("eighth"),
+                    duration=Duration(
+                        "sixteenth" if mark.kind == "double_beam" else "eighth"
+                    ),
                     beam=mark.beam_position,
                     diagnostics=(*note.diagnostics, mark.kind),
                 )

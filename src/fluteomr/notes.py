@@ -1,5 +1,6 @@
 """Cabeças de nota em uma pauta horizontal limpa, sem motor OMR externo."""
 
+from array import array
 from dataclasses import dataclass, replace
 from math import ceil, floor
 
@@ -96,6 +97,99 @@ def _shape(
             sum(ink[(y + dy) * width + x + dx] for dx, dy in offsets) / len(offsets)
             >= 0.35
             for offsets in side_offsets
+        ):
+            return "hollow", rim - core / 2
+    return None
+
+
+
+def _horizontal_ink_prefix(ink: bytearray, width: int, height: int) -> array:
+    """Contagem acumulada por linha, com coluna zero vazia em cada linha.
+
+    O limite global de imagem (20 milhões de pixels) impede overflow de uint32.
+    A própria imagem é a única evidência usada: nenhum contexto musical.
+    """
+    stride = width + 1
+    prefix = array("I", [0]) * (height * stride)
+    for y in range(height):
+        row = y * width
+        target = y * stride
+        running = 0
+        for x in range(width):
+            running += ink[row + x]
+            prefix[target + x + 1] = running
+    return prefix
+
+
+def _offset_spans(
+    offsets: tuple[tuple[int, int], ...],
+) -> tuple[tuple[int, tuple[tuple[int, int], ...]], ...]:
+    """Comprime máscaras elípticas em trechos horizontais inclusivos."""
+    rows: dict[int, list[int]] = {}
+    for dx, dy in offsets:
+        rows.setdefault(dy, []).append(dx)
+    result = []
+    for dy, xs in sorted(rows.items()):
+        ordered = sorted(xs)
+        ranges = []
+        start = end = ordered[0]
+        for x in ordered[1:]:
+            if x == end + 1:
+                end = x
+            else:
+                ranges.append((start, end))
+                start = end = x
+        ranges.append((start, end))
+        result.append((dy, tuple(ranges)))
+    return tuple(result)
+
+
+def _span_ink_count(
+    prefix: array,
+    stride: int,
+    x: int,
+    y: int,
+    spans: tuple[tuple[int, tuple[tuple[int, int], ...]], ...],
+) -> int:
+    """Lê exatamente os mesmos pixels de uma máscara; sem aproximar scores."""
+    hits = 0
+    for dy, ranges in spans:
+        base = (y + dy) * stride + x
+        for first, last in ranges:
+            hits += prefix[base + last + 1] - prefix[base + first]
+    return hits
+
+
+def _shape_from_prefix(
+    prefix: array,
+    width: int,
+    height: int,
+    x: int,
+    y: int,
+    rx: int,
+    ry: int,
+    core_offsets: tuple[tuple[int, int], ...],
+    rim_offsets: tuple[tuple[int, int], ...],
+    side_offsets: tuple[tuple[tuple[int, int], ...], ...],
+    core_spans: tuple[tuple[int, tuple[tuple[int, int], ...]], ...],
+    rim_spans: tuple[tuple[int, tuple[tuple[int, int], ...]], ...],
+    side_spans: tuple[tuple[tuple[int, tuple[tuple[int, int], ...]], ...], ...],
+) -> tuple[str, float] | None:
+    """Alternativa exata a `_shape` para a busca densa de cabeças de notas."""
+    if x - rx < 0 or x + rx >= width or y - ry < 0 or y + ry >= height:
+        return None
+    stride = width + 1
+    core = _span_ink_count(prefix, stride, x, y, core_spans) / len(core_offsets)
+    # Não pode ser preenchida nem vazada nessa faixa: evita calcular o anel.
+    if 0.34 < core < 0.58:
+        return None
+    rim = _span_ink_count(prefix, stride, x, y, rim_spans) / len(rim_offsets)
+    if core >= 0.58 and rim >= 0.60:
+        return "filled", min(core, rim)
+    if core <= 0.34 and rim - core / 2 >= 0.44:
+        if all(
+            _span_ink_count(prefix, stride, x, y, spans) / len(offsets) >= 0.35
+            for spans, offsets in zip(side_spans, side_offsets, strict=True)
         ):
             return "hollow", rim - core / 2
     return None
@@ -255,6 +349,12 @@ def detect_noteheads(
         )
         for side in (-1, 1)
     )
+    # O filtro de forma antes fazia centenas de leituras Python por candidato.
+    # Os mesmos pixels são somados por spans em prefixos, sem alterar limiares.
+    prefix = _horizontal_ink_prefix(ink, image.width, image.height)
+    core_spans = _offset_spans(core_offsets)
+    rim_spans = _offset_spans(rim_offsets)
+    side_spans = tuple(_offset_spans(side) for side in side_offsets)
     candidates = []
     for degree in range(-4, 13):
         center = staff.lines[-1].y - degree * spacing / 2
@@ -262,8 +362,8 @@ def detect_noteheads(
             round(center - 0.12 * spacing), round(center + 0.12 * spacing) + 1
         ):
             for x in range(measure_left + rx, measure_right - rx + 1):
-                match = _shape(
-                    ink,
+                match = _shape_from_prefix(
+                    prefix,
                     image.width,
                     image.height,
                     x,
@@ -273,6 +373,9 @@ def detect_noteheads(
                     core_offsets,
                     rim_offsets,
                     side_offsets,
+                    core_spans,
+                    rim_spans,
+                    side_spans,
                 )
                 if match is None:
                     continue

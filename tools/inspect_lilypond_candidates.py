@@ -96,8 +96,68 @@ def _analyse_xml(path: Path) -> dict:
     }
 
 
+def _read_prefix_guard(source: Path, manifest: Path) -> tuple[list[dict], str]:
+    """Verifica que o prefixo anotado consta na MESMA fonte versionada."""
+    if not manifest.is_file() or manifest.stat().st_size > 64 * 1024:
+        raise CandidateReferenceError("anotação de prefixo ausente ou muito grande")
+    data = json.loads(manifest.read_text(encoding="utf-8"))
+    if data.get("format_version") != 1:
+        raise CandidateReferenceError("versão da anotação incompatível")
+    if data.get("source_sha256") != _sha256(source):
+        raise CandidateReferenceError("hash da fonte diferente da anotação")
+    literal = data.get("source_literal")
+    if not isinstance(literal, str) or not 2 <= len(literal) <= 180:
+        raise CandidateReferenceError("prefixo literal inválido")
+    if literal not in source.read_text(encoding="utf-8"):
+        raise CandidateReferenceError("trecho anotado não existe no LilyPond")
+    expected = data.get("expected_events")
+    if not isinstance(expected, list) or not 1 <= len(expected) <= 24:
+        raise CandidateReferenceError("lista de eventos de prefixo inválida")
+    for event in expected:
+        if not isinstance(event, dict) or set(event) != {
+            "rest", "type", "step", "alter", "octave"
+        }:
+            raise CandidateReferenceError("evento de prefixo inválido")
+        if type(event["rest"]) is not bool or event["type"] not in (
+            "16th", "eighth", "quarter", "half"
+        ):
+            raise CandidateReferenceError("tipo de evento de prefixo inválido")
+        if event["rest"] and any(event[key] is not None for key in (
+            "step", "alter", "octave"
+        )):
+            raise CandidateReferenceError("pausa não deve ter altura")
+    return expected, literal
+
+
+def _verify_prefix(candidate: dict, expected: list[dict]) -> dict:
+    preview = candidate["first_measure_preview"]
+    details = []
+    for index, wanted in enumerate(expected):
+        observed = preview[index] if index < len(preview) else None
+        found = (
+            {key: observed[key] for key in wanted}
+            if observed is not None
+            else None
+        )
+        if found != wanted:
+            details.append({
+                "event_index": index,
+                "expected": wanted,
+                "observed": found,
+            })
+    return {
+        "status": "mismatch" if details else "prefix_matches_only",
+        "compared_events": len(expected),
+        "mismatches": details,
+    }
+
+
 def inspect_source_candidates(
-    source: Path, candidate_dir: Path, report: Path
+    source: Path,
+    candidate_dir: Path,
+    report: Path,
+    *,
+    expected_prefix: Path | None = None,
 ) -> dict:
     """Gera manifesto estritamente classificado como conversão NÃO revisada."""
     source = source.resolve()
@@ -112,17 +172,24 @@ def inspect_source_candidates(
     paths = sorted(candidate_dir.rglob("*.musicxml"))
     if not paths:
         raise CandidateReferenceError("nenhum arquivo MusicXML foi gerado")
+    expected = None
+    if expected_prefix is not None:
+        expected, _ = _read_prefix_guard(source, expected_prefix)
     entries = []
     for path in paths:
         inspected = _analyse_xml(path)
-        entries.append(
-            {
-                "file": path.relative_to(candidate_dir).as_posix(),
-                "sha256": _sha256(path),
-                "bytes": path.stat().st_size,
-                **inspected,
-            }
-        )
+        entry = {
+            "file": path.relative_to(candidate_dir).as_posix(),
+            "sha256": _sha256(path),
+            "bytes": path.stat().st_size,
+            **inspected,
+        }
+        if expected is not None:
+            entry["source_prefix_check"] = _verify_prefix(entry, expected)
+        entries.append(entry)
+    contradicted = expected is not None and all(
+        entry["source_prefix_check"]["status"] == "mismatch" for entry in entries
+    )
     result = {
         "format_version": 1,
         "origin": "LilyPond engraving source, not FluteOMR predictions",
@@ -132,7 +199,15 @@ def inspect_source_candidates(
         },
         "candidate_count": len(entries),
         "candidates": entries,
-        "reference_quality": "source_derived_unreviewed",
+        "reference_quality": (
+            "rejected_source_prefix_mismatch"
+            if contradicted
+            else "source_derived_unreviewed"
+        ),
+        "source_prefix_alignment": (
+            "mismatch" if contradicted else "prefix_only" if expected else "not_checked"
+        ),
+        "usable_as_music_ground_truth": False,
         "human_reviewed": False,
         "same_engraving_as_pdf_verified": False,
         "score_alignment_verified": False,
@@ -155,10 +230,14 @@ def main() -> None:
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--candidates", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)
+    parser.add_argument("--expected-prefix", type=Path)
     args = parser.parse_args()
     try:
         result = inspect_source_candidates(
-            args.source, args.candidates, args.report
+            args.source,
+            args.candidates,
+            args.report,
+            expected_prefix=args.expected_prefix,
         )
     except (OSError, ValueError) as exc:
         parser.exit(2, f"{exc}\n")

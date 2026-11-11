@@ -337,24 +337,26 @@ def test_complete_double_beam_group_is_four_sixteenths_in_one_quarter():
         beam_groups=((0, 1, 2, 3),),
         double=True,
     )
-    score = transcribe_one_measure(
-        image, measure_left=110, measure_right=410, beats=1
-    )
+    score = transcribe_one_measure(image, measure_left=110, measure_right=410, beats=1)
     notes = score.parts[0].measures[0].notes
     assert len(notes) == 4
     assert [note.duration.kind for note in notes] == ["sixteenth"] * 4
-    assert [note.beam for note in notes] == [
-        "begin", "continue", "continue", "end"
-    ]
+    assert [note.beam for note in notes] == ["begin", "continue", "continue", "end"]
     assert all("double_beam" in note.diagnostics for note in notes)
     assert score.issues() == ()
     xml = ET.fromstring(to_musicxml(score))
     assert xml.findtext("./part/measure/attributes/divisions") == "4"
     assert [n.findtext("duration") for n in xml.findall("./part/measure/note")] == [
-        "1", "1", "1", "1"
+        "1",
+        "1",
+        "1",
+        "1",
     ]
     assert [n.findtext("type") for n in xml.findall("./part/measure/note")] == [
-        "16th", "16th", "16th", "16th"
+        "16th",
+        "16th",
+        "16th",
+        "16th",
     ]
     for number in ("1", "2"):
         beams = [

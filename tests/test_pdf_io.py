@@ -6,10 +6,11 @@ import sys
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from fluteomr.image_io import MAX_PIXELS
-from tools.extract_pdf_page import extract_pdf_page
 from fluteomr.pdf_io import PdfInputError, load_pdf_page, pdf_page_count
+from tools.extract_pdf_page import extract_pdf_page
 
 
 def _make_pdf(path: Path, contents: list[str], *, size=(400, 200)) -> Path:

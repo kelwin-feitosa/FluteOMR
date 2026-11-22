@@ -15,7 +15,12 @@ from fluteomr.annotation_editor import (
     next_pending_clef,
     resize_box,
 )
-from fluteomr.annotations import AnnotationError, image_sha256, load_reference
+from fluteomr.annotations import (
+    AnnotationError,
+    image_sha256,
+    load_reference,
+    verify_image,
+)
 
 
 def _draft(tmp_path):
@@ -264,3 +269,26 @@ def test_zoom_mapping_and_clef_hit_priority():
     assert hit_box((30, 40), boxes) == ("clefs", "s0")
     assert hit_box((180, 40), boxes) == ("staffs", "s0")
     assert hit_box((0, 0), boxes) is None
+
+
+def test_annotation_image_rejects_traversal_and_escaping_symlinks(tmp_path):
+    reference_path, image_dir = _draft(tmp_path)
+    reference = load_reference(reference_path)
+    assert verify_image(reference, image_dir) == image_dir / "page.png"
+
+    outside = tmp_path / "outside.png"
+    Image.new("RGB", (200, 120), "black").save(outside)
+    reference["image"]["sha256"] = image_sha256(outside)
+    for untrusted in ("../outside.png", str(outside), "..\\outside.png"):
+        reference["image"]["filename"] = untrusted
+        with pytest.raises(AnnotationError, match="nome simples"):
+            verify_image(reference, image_dir)
+
+    symlink = image_dir / "alias.png"
+    try:
+        symlink.symlink_to(outside)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks indisponíveis nesta plataforma")
+    reference["image"]["filename"] = "alias.png"
+    with pytest.raises(AnnotationError, match="fora do diretório"):
+        verify_image(reference, image_dir)

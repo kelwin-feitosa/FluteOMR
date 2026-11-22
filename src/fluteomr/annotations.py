@@ -269,13 +269,27 @@ def validate_reference(data: object, *, require_validated: bool = False) -> dict
 
 def verify_image(reference: dict, image_dir: Path) -> Path:
     """Compara bytes SHA-256 e dimensões normalizadas, sem caminho absoluto."""
-    path = image_dir / reference["image"]["filename"]
-    if not path.is_file():
+    filename = reference["image"]["filename"]
+    # Public callers must not rely on validate_reference() having run first.
+    # Reject traversal and symlinks escaping the configured image directory.
+    if (
+        not isinstance(filename, str)
+        or Path(filename).name != filename
+        or "\\" in filename
+        or filename in (".", "..")
+    ):
+        raise AnnotationError("image.filename deve ser nome simples")
+    path = image_dir / filename
+    trusted_root = image_dir.resolve()
+    resolved_path = path.resolve()
+    if not resolved_path.is_relative_to(trusted_root):
+        raise AnnotationError("imagem fora do diretório permitido")
+    if not resolved_path.is_file():
         raise FileNotFoundError(f"imagem ausente: {path.name}")
-    actual_hash = image_sha256(path)
+    actual_hash = image_sha256(resolved_path)
     if actual_hash != reference["image"]["sha256"]:
         raise AnnotationError(f"hash SHA-256 diferente: {path.name}")
-    image = load_image(path)
+    image = load_image(resolved_path)
     if image.size != (reference["image"]["width"], reference["image"]["height"]):
         raise AnnotationError(f"dimensões diferentes: {path.name}")
     return path

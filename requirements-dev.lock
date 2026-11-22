@@ -2,10 +2,10 @@
 # Atualizar em ambiente limpo junto aos pins do pyproject.toml.
 iniconfig==2.3.1
 packaging==26.3
-Pillow==12.3.0
+Pillow==13.0.0
 pluggy==1.6.0
 Pygments==2.21.0
 pypdfium2==5.15.2
 pytest==9.1.1
 ruff==0.17.0
-setuptools==84.0.0
+setuptools==84.1.0

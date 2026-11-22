@@ -15,7 +15,12 @@ from fluteomr.annotation_editor import (
     next_pending_clef,
     resize_box,
 )
-from fluteomr.annotations import AnnotationError, image_sha256, load_reference, verify_image
+from fluteomr.annotations import (
+    AnnotationError,
+    image_sha256,
+    load_reference,
+    verify_image,
+)
 
 
 def _draft(tmp_path):
